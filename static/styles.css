@@ -1,0 +1,29 @@
+/* static/styles.css */
+body {
+    background-color: #f4f7f9; /* A light, neutral background */
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.navbar-brand {
+    font-size: 1.8rem;
+    font-weight: bold;
+}
+
+.card {
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    border: none;
+}
+
+h1, h2, h5 {
+    color: #343a40;
+}
+
+/* Custom button styles for interactivity */
+.btn-custom {
+    background-color: #0056b3;
+    color: white;
+}
+.btn-custom:hover {
+    background-color: #004494;
+    color: #f4f7f9;
+}

@@ -1,0 +1,31 @@
+# --- ENVIRONMENT & SECRETS ---
+.env
+
+*.db
+
+# --- PYTHON BYTECODE ---
+__pycache__/
+*.py[cod]
+*$py.class
+
+# --- VIRTUAL ENVIRONMENTS ---
+.venv/
+
+# --- IDEs & EDITORS ---
+.vscode/
+.idea/
+
+# --- OS FILES ---
+.DS_Store
+Thumbs.db
+
+# --- JUPYTER NOTEBOOKS CHECKPOINTS ---
+.ipynb_checkpoints
+
+# --- LOG FILES ---
+*.log
+
+# --- DOCKER ---
+.dockerignore
+Dockerfile
+docker-compose.yml

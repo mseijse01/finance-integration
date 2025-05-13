@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+    {{ graph|safe }}
+    {% for symbol, section in financials.items() %}
+        <h2>{{ symbol }} Financials & Earnings</h2>
+        {{ section|safe }}
+        <h3>News & Sentiment</h3>
+        {{ news_sections[symbol].headlines|safe }}
+    {% endfor %}
+{% endblock %}

@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block title %}News{% endblock %}
+{% block content %}
+    {% for symbol, section in news_sections.items() %}
+        <h2>{{ symbol }} News</h2>
+        {{ section|safe }}
+    {% endfor %}
+{% endblock %}
