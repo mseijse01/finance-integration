@@ -4,6 +4,7 @@ import polars as pl
 from plotly.subplots import make_subplots
 import plotly.graph_objs as go
 import plotly.io as pio
+from datetime import datetime
 from services.news import fetch_company_news
 from services.financials import fetch_financials
 from services.earnings import fetch_earnings
@@ -60,42 +61,53 @@ def dashboard():
                 "average_sentiment": None,
             }
 
-        financials = fetch_financials(symbol)
+        financials = fetch_financials(symbol, freq="quarterly")
+        if not financials or not financials.get("data"):
+            financials = fetch_financials(symbol, freq="annual")
+
         earnings = fetch_earnings(symbol)
-        if financials.get("data"):
+
+        # Process financials
+        if financials and financials.get("data"):
             report = financials["data"][0].get("report", {})
-            revenue = next(
-                (
-                    report.get(k)
-                    for k in ["Revenue", "totalRevenue", "revenues"]
-                    if k in report
-                ),
-                "N/A",
+            revenue = extract_financial_metric(
+                report, ["Revenue", "totalRevenue", "revenues"]
             )
-            net_income = next(
-                (
-                    report.get(k)
-                    for k in ["Net Income", "netIncome", "net_income"]
-                    if k in report
-                ),
-                "N/A",
+            net_income = extract_financial_metric(
+                report, ["Net Income", "netIncome", "net_income"]
             )
         else:
             revenue = net_income = "N/A"
 
-        if (
-            earnings
-            and isinstance(earnings, list)
-            and len(earnings) > 0
-            and isinstance(earnings[0], dict)
-        ):
-            eps = earnings[0].get("eps", "N/A")
-            date = earnings[0].get("period", "N/A")
-        else:
-            eps = date = "N/A"
+        # Process earnings
+        eps = date = "N/A"
+        if earnings and isinstance(earnings, list):
+            try:
+                sorted_earnings = sorted(
+                    earnings,
+                    key=lambda x: datetime.strptime(
+                        x.get("period", "1900-01-01"), "%Y-%m-%d"
+                    ),
+                    reverse=True,
+                )
+                latest = sorted_earnings[0]
+                eps = (
+                    latest.get("actual")
+                    or latest.get("eps")
+                    or latest.get("epsActual")
+                    or "N/A"
+                )
+                date = latest.get("period", "N/A")
+            except Exception as e:
+                logger.warning(
+                    f"Could not parse earnings date for {symbol}", exc_info=True
+                )
 
         financials_sections[symbol] = (
-            f"<p><strong>Revenue:</strong> {revenue}</p><p><strong>Net Income:</strong> {net_income}</p><p><strong>EPS:</strong> {eps}</p><p><strong>Earnings Date:</strong> {date}</p>"
+            f"<p><strong>Revenue:</strong> {revenue}</p>"
+            f"<p><strong>Net Income:</strong> {net_income}</p>"
+            f"<p><strong>EPS:</strong> {eps}</p>"
+            f"<p><strong>Earnings Date:</strong> {date}</p>"
         )
 
     fig.update_layout(title="Cannabis Stocks", height=600)
@@ -105,3 +117,17 @@ def dashboard():
         financials=financials_sections,
         news_sections=news_sections,
     )
+
+
+def extract_financial_metric(report_data, possible_keys):
+    """
+    Helper to extract a metric from the income statement block.
+    Tries to match one of the keys to the 'concept' field.
+    """
+    items = report_data.get("ic", [])  # 'ic' = Income Statement
+    for item in items:
+        concept = item.get("concept", "").lower()
+        for key in possible_keys:
+            if key.lower() in concept:
+                return item.get("value", "N/A")
+    return "N/A"

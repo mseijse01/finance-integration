@@ -12,7 +12,7 @@ def fetch_stock_data(symbol: str, function: str = "TIME_SERIES_DAILY"):
         "function": function,
         "symbol": symbol,
         "apikey": Config.ALPHA_VANTAGE_API_KEY,
-        "outputsize": "compact",  # or "full" for complete history
+        "outputsize": "full",  # or "full" for complete history
     }
 
     try:
