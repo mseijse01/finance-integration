@@ -10,6 +10,8 @@ __pycache__/
 
 # --- VIRTUAL ENVIRONMENTS ---
 .venv/
+*.env/
+finance-integration.env/
 
 # --- IDEs & EDITORS ---
 .vscode/
