@@ -1,15 +1,19 @@
-from flask import Blueprint, render_template
+from flask import Blueprint, render_template, Response
 import pandas as pd
 import polars as pl
 from plotly.subplots import make_subplots
 import plotly.graph_objs as go
 import plotly.io as pio
 from datetime import datetime
+import io
+import csv
 from services.news import fetch_company_news
 from services.financials import fetch_financials
 from services.earnings import fetch_earnings
 from models.db_models import SessionLocal, StockPrice
 from utils.logging_config import logger
+from etl.extraction import fetch_stock_data
+from etl.transformation import transform_stock_data
 
 dashboard_bp = Blueprint("dashboard", __name__)
 
@@ -131,3 +135,93 @@ def extract_financial_metric(report_data, possible_keys):
             if key.lower() in concept:
                 return item.get("value", "N/A")
     return "N/A"
+
+
+@dashboard_bp.route("/download/<symbol>")
+def download_csv(symbol):
+    """
+    Route to download stock data as CSV.
+    By default, provides transformed data from database.
+    If data_type=raw is specified, provides raw data directly from the API.
+    """
+    from flask import request
+
+    data_type = request.args.get("data_type", "transformed")
+
+    if data_type == "raw":
+        # Get raw data directly from API
+        try:
+            raw_data = fetch_stock_data(symbol)
+            if not raw_data or "Time Series (Daily)" not in raw_data:
+                return Response("No data available for this symbol", status=404)
+
+            time_series = raw_data["Time Series (Daily)"]
+
+            # Prepare CSV file in memory
+            output = io.StringIO()
+            writer = csv.writer(output)
+
+            # Write header
+            writer.writerow(["date", "open", "high", "low", "close", "volume"])
+
+            # Write data
+            for date, values in time_series.items():
+                writer.writerow(
+                    [
+                        date,
+                        values["1. open"],
+                        values["2. high"],
+                        values["3. low"],
+                        values["4. close"],
+                        values["5. volume"],
+                    ]
+                )
+
+            # Prepare response
+            output.seek(0)
+            filename = f"{symbol}_raw_data_{datetime.now().strftime('%Y%m%d')}.csv"
+
+        except Exception as e:
+            logger.error(f"Error fetching raw data for {symbol}: {e}", exc_info=True)
+            return Response(f"Error fetching data: {str(e)}", status=500)
+    else:
+        # Get transformed data from database
+        try:
+            session = SessionLocal()
+            query = (
+                session.query(StockPrice)
+                .filter(StockPrice.symbol == symbol)
+                .order_by(StockPrice.date.asc())
+            )
+            records = [r.__dict__ for r in query]
+            for r in records:
+                r.pop("_sa_instance_state", None)
+            session.close()
+
+            if not records:
+                return Response("No data available for this symbol", status=404)
+
+            # Convert to pandas DataFrame
+            df = pd.DataFrame(records)
+
+            # Create CSV in memory
+            output = io.StringIO()
+            df.to_csv(output, index=False)
+
+            # Prepare response
+            output.seek(0)
+            filename = (
+                f"{symbol}_transformed_data_{datetime.now().strftime('%Y%m%d')}.csv"
+            )
+
+        except Exception as e:
+            logger.error(
+                f"Error fetching transformed data for {symbol}: {e}", exc_info=True
+            )
+            return Response(f"Error fetching data: {str(e)}", status=500)
+
+    return Response(
+        output.getvalue(),
+        mimetype="text/csv",
+        headers={"Content-Disposition": f"attachment;filename={filename}"},
+    )

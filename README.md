@@ -10,6 +10,7 @@ This project showcases a robust ETL pipeline, API integrations (Alpha Vantage & 
 - 📊 **Interactive Stock Charts** with moving averages and volatility
 - 📉 **Financial Fundamentals** (Revenue, Net Income, EPS, Earnings Date)
 - 🔁 **ETL Pipeline** for fetching, transforming, and loading historical stock data
+- 📥 **CSV Download** for both raw and transformed stock data
 - 🗃️ **SQLAlchemy ORM** and PostgreSQL backend
 - 📦 Ready for future **Machine Learning** (e.g., price prediction)
 
@@ -90,6 +91,16 @@ finance-integration/
 2. **Transform**: Process and normalize the data for database storage
 3. **Load**: Store in PostgreSQL database via SQLAlchemy models
 4. **Visualize**: Generate interactive charts with Plotly through Flask routes
+5. **Download**: Export stock data as CSV files (raw or transformed) for offline analysis
+
+## 📥 Data Download
+
+Each stock on the dashboard includes two download options:
+
+- **Download [SYMBOL] Data (CSV)**: Download the transformed dataset including calculated fields like moving averages and volatility
+- **Download Raw Data**: Download the original API data without transformations
+
+This feature allows data scientists and analysts to perform their own analysis using the raw or processed data.
 
 ## 🤝 Contributing
 
