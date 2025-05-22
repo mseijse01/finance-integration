@@ -6,6 +6,8 @@ from models.db_models import SessionLocal, Earnings
 from sqlalchemy import desc
 from datetime import datetime, timedelta
 from etl.earnings_etl import run_earnings_etl_pipeline
+from services.alternative_financials import fetch_yahoo_financials
+from services.hardcoded_financials import get_hardcoded_earnings
 
 
 @timed_cache(
@@ -15,6 +17,8 @@ def fetch_earnings(symbol: str):
     """
     Fetches earnings data for a given stock symbol from the database.
     Falls back to ETL pipeline if no data is found.
+    If ETL pipeline doesn't find data, tries Yahoo Finance as alternative source.
+    If Yahoo Finance doesn't have data, tries hardcoded data as a last resort.
     """
     session = SessionLocal()
     try:
@@ -63,10 +67,37 @@ def fetch_earnings(symbol: str):
             f"Fetched {len(earnings)} earnings records for {symbol} from database"
         )
         if earnings:
+            # Add source information
+            for earning in earnings:
+                earning["source"] = "finnhub"
             return earnings
         else:
-            # Fallback to API if no earnings found in the database
-            return _legacy_fetch_earnings(symbol)
+            # Try Yahoo Finance as an alternative data source
+            logger.info(
+                f"No earnings found in database for {symbol}, trying Yahoo Finance"
+            )
+            yahoo_data = fetch_yahoo_financials(symbol)
+
+            if yahoo_data["quarterly_earnings"]:
+                logger.info(
+                    f"Retrieved quarterly earnings from Yahoo Finance for {symbol}"
+                )
+                return yahoo_data["quarterly_earnings"]
+            else:
+                # Try hardcoded data as a last resort
+                logger.info(
+                    f"No earnings found in standard sources for {symbol}, trying hardcoded data"
+                )
+                hardcoded_earnings = get_hardcoded_earnings(symbol)
+                if hardcoded_earnings:
+                    logger.info(f"Using hardcoded earnings data for {symbol}")
+                    return hardcoded_earnings
+
+                # Fallback to API if no data found in any source
+                logger.warning(
+                    f"No earnings found for {symbol} in any data source, including hardcoded data"
+                )
+                return _legacy_fetch_earnings(symbol)
     except Exception as e:
         logger.error(
             f"Error fetching earnings for {symbol} from database: {e}", exc_info=True

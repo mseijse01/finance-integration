@@ -8,6 +8,15 @@ from models.db_models import SessionLocal, NewsArticle
 from sqlalchemy import desc
 from datetime import datetime, timedelta
 from etl.news_etl import run_news_etl_pipeline
+import ssl
+
+# Fix SSL certificate issues for NLTK downloads
+try:
+    _create_unverified_https_context = ssl._create_unverified_context
+except AttributeError:
+    pass
+else:
+    ssl._create_default_https_context = _create_unverified_https_context
 
 # Ensure the lexicon is available
 nltk.download("vader_lexicon", quiet=True)

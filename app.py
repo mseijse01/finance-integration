@@ -4,6 +4,15 @@ from views.news import news_bp
 from models.db_models import create_tables
 import click
 from run_etl import run_pipelines_parallel, run_pipeline_for_symbol
+import ssl
+
+# Fix SSL certificate issues for NLTK downloads and other libraries
+try:
+    _create_unverified_https_context = ssl._create_unverified_context
+except AttributeError:
+    pass
+else:
+    ssl._create_default_https_context = _create_unverified_https_context
 
 app = Flask(__name__)
 create_tables()

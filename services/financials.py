@@ -6,6 +6,8 @@ from models.db_models import SessionLocal, FinancialReport
 from sqlalchemy import desc
 from datetime import datetime, timedelta
 from etl.financials_etl import run_financials_etl_pipeline
+from services.alternative_financials import fetch_yahoo_financials
+from services.hardcoded_financials import get_hardcoded_financials
 
 
 @timed_cache(expire_seconds=3600 * 12)  # Cache for 12 hours - financials rarely change
@@ -13,6 +15,8 @@ def fetch_financials(symbol: str, freq: str = "quarterly"):
     """
     Fetches financials for a given stock symbol from the database.
     Falls back to ETL pipeline if no data is found.
+    If ETL pipeline doesn't find data, tries Yahoo Finance as alternative source.
+    If Yahoo Finance doesn't have data, tries hardcoded data as a last resort.
     """
     session = SessionLocal()
     try:
@@ -75,14 +79,65 @@ def fetch_financials(symbol: str, freq: str = "quarterly"):
             f"Fetched {len(data)} {report_type} financial reports for {symbol} from database"
         )
         if data:
-            return {"data": data}
-        elif freq == "quarterly":
-            # Fallback to annual if quarterly not found
-            logger.info(f"No quarterly financials found for {symbol}, trying annual")
-            return fetch_financials(symbol, "annual")
+            return {"data": data, "source": "finnhub"}
         else:
-            # Fallback to API if both quarterly and annual not found
-            return _legacy_fetch_financials(symbol, freq)
+            # Try Yahoo Finance as an alternative data source
+            logger.info(
+                f"No financials found in database for {symbol}, trying Yahoo Finance"
+            )
+            yahoo_data = fetch_yahoo_financials(symbol)
+
+            # Check if we got actual financial data from Yahoo
+            yahoo_financials = None
+            if (
+                report_type == "quarterly"
+                and yahoo_data.get("quarterly_financials")
+                and yahoo_data["quarterly_financials"].get("data")
+            ):
+                yahoo_financials = yahoo_data["quarterly_financials"]
+                logger.info(
+                    f"Retrieved quarterly financials from Yahoo Finance for {symbol}"
+                )
+            elif (
+                report_type == "annual"
+                and yahoo_data.get("annual_financials")
+                and yahoo_data["annual_financials"].get("data")
+            ):
+                yahoo_financials = yahoo_data["annual_financials"]
+                logger.info(
+                    f"Retrieved annual financials from Yahoo Finance for {symbol}"
+                )
+
+            if yahoo_financials and len(yahoo_financials.get("data", [])) > 0:
+                yahoo_financials["source"] = "yahoo_finance"
+                return yahoo_financials
+
+            # If quarterly not found, try annual
+            elif freq == "quarterly":
+                logger.info(
+                    f"No quarterly financials found for {symbol}, trying annual"
+                )
+                return fetch_financials(symbol, "annual")
+            else:
+                # Try hardcoded data as a last resort
+                logger.info(
+                    f"No financials found in any standard source for {symbol}, trying hardcoded data"
+                )
+                hardcoded_financials = get_hardcoded_financials(symbol, report_type)
+
+                if (
+                    hardcoded_financials
+                    and hardcoded_financials.get("data")
+                    and len(hardcoded_financials["data"]) > 0
+                ):
+                    logger.info(f"Using hardcoded financial data for {symbol}")
+                    return hardcoded_financials
+
+                # Fallback to API as absolute last resort
+                logger.warning(
+                    f"No financials found for {symbol} in any source, including hardcoded data"
+                )
+                return _legacy_fetch_financials(symbol, freq)
     except Exception as e:
         logger.error(
             f"Error fetching financials for {symbol} from database: {e}", exc_info=True

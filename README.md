@@ -2,66 +2,96 @@
 
 A data-driven Flask web application that tracks and visualizes stock prices, financial fundamentals, earnings, and sentiment analysis for cannabis-related companies.
 
-This project showcases a robust ETL pipeline, API integrations (Alpha Vantage & Finnhub), database handling with SQLAlchemy, and dynamic dashboards powered by Plotly — all structured for modularity and scalability.
+This project showcases a robust ETL pipeline, API integrations (Alpha Vantage, Finnhub & Yahoo Finance), database handling with SQLAlchemy, and dynamic dashboards powered by Plotly — all structured for modularity and scalability.
 
 ## 🚀 Features
 
 - 📰 **News Sentiment** from the past 30 days via Finnhub
 - 📊 **Interactive Stock Charts** with moving averages and volatility
 - 📉 **Financial Fundamentals** (Revenue, Net Income, EPS, Earnings Date)
+  - Primary data source: Finnhub
+  - Secondary data source: Yahoo Finance (for stocks without Finnhub coverage)
+  - Tertiary data source: Hardcoded data from investor relations sites
+  - Data source comparison when both sources available
 - 🔁 **Comprehensive ETL Pipeline** for stock data, news, financials, and earnings
 - 📥 **CSV Download** for both raw and transformed stock data
-- 🗃️ **SQLAlchemy ORM** and PostgreSQL backend
-- 📦 Ready for future **Machine Learning** (e.g., price prediction)
-- 🔄 **Multi-layered Architecture** with adapters and fallback mechanisms
+- 🗃️ **Smart Service Adapters** for resilient data access with graceful fallbacks
+- 🔄 **Auto-Refresh** background processes for data currency
+- 📊 **Responsive Design** for both desktop and mobile use
+- 🌐 **NLTK Integration** for sentiment analysis of financial news
 
-## 🧱 Project Structure
+## 🏗️ Architecture
+
+The application follows a clean architecture pattern:
+
+1. **ETL Layer**: Extract, Transform, and Load data from external APIs into our database
+2. **Service Adapters**: Smart adapters that attempt database access first, then trigger ETL if needed, with multiple fallback sources
+3. **Data Access Layer**: Database models and query functions
+4. **Presentation Layer**: Flask routes and Plotly visualizations
+
+### Data Flow & Multi-Source Strategy
 
 ```
-finance-integration/
-├── app.py                    ← Flask application entry point
-├── config.py                 ← Config loader for .env variables
-├── .env                      ← API keys and database credentials (excluded from Git)
-│
-├── models/                  ← Database models
-│   └── db_models.py
-│
-├── services/                ← Service adapters with fallback mechanisms
-│   ├── README.md            ← Documentation of service architecture
-│   ├── news.py              ← News data adapter (DB → ETL → API)
-│   ├── financials.py        ← Financials adapter (DB → ETL → API)
-│   └── earnings.py          ← Earnings adapter (DB → ETL → API)
-│
-├── views/                   ← Flask route logic
-│   ├── dashboard.py
-│   └── news.py
-│
-├── etl/                     ← ETL pipeline components
-│   ├── extraction.py
-│   ├── transformation.py
-│   ├── loading.py
-│   ├── news_etl.py          ← News ETL pipeline
-│   ├── financials_etl.py    ← Financials ETL pipeline
-│   └── earnings_etl.py      ← Earnings ETL pipeline
-│
-├── ml/                      ← Placeholder for future ML modules
-│   └── predictor.py
-│
-├── utils/                   ← Logging and plotting helpers
-│   ├── logging_config.py
-│   ├── cache.py
-│   └── plot_helpers.py
-│
-├── templates/               ← Jinja2 templates
-│   ├── base.html
-│   ├── dashboard.html
-│   └── news.html
-│
-├── run_etl.py               ← Script to run all ETL pipelines
-├── Dockerfile               ← Container definition
-├── .dockerignore
-├── requirements.txt
-├── README.md
+                           ┌──────────────────────┐
+                           │   Database (Primary) │
+                           └──────────┬───────────┘
+                                      │
+                                      ▼
+┌─────────────────┐         ┌──────────────────────┐
+│     User UI     │◀───────▶│   Service Adapters   │
+└─────────────────┘         └──────────┬───────────┘
+                                      │
+                                      ▼
+                            ┌─────────────────────┐
+                            │  Database Missing?  │─── Yes ───┐
+                            └─────────────────────┘           │
+                                      │                       ▼
+                                     No                ┌─────────────┐
+                                      │                │  ETL Layer  │
+                                      ▼                └──────┬──────┘
+                           ┌──────────────────────┐           │
+                           │      Return Data     │           ▼
+                           └──────────────────────┘   ┌───────────────────┐
+                                                      │  Finnhub API      │
+                                                      │  (Primary API)    │
+                                                      └────────┬──────────┘
+                                                               │
+                                                               ▼
+                                                      ┌───────────────────┐
+                                                      │  Data Available?  │─── Yes ───┐
+                                                      └───────────────────┘           │
+                                                               │                      ▼
+                                                              No             ┌──────────────────┐
+                                                               │             │ Store in Database│
+                                                               ▼             └─────────┬────────┘
+                                                      ┌───────────────────┐            │
+                                                      │  Yahoo Finance    │            │
+                                                      │  (Secondary API)  │            │
+                                                      └────────┬──────────┘            │
+                                                               │                       │
+                                                               ▼                       │
+                                                      ┌───────────────────┐            │
+                                                      │  Data Available?  │─── Yes ────┘
+                                                      └───────────────────┘
+                                                               │
+                                                              No
+                                                               ▼
+                                                      ┌───────────────────┐
+                                                      │  Hardcoded Data   │
+                                                      │  (Last Resort)    │
+                                                      └────────┬──────────┘
+                                                               │
+                                                               ▼
+                                                      ┌───────────────────┐
+                                                      │  Data Available?  │─── Yes ────┐
+                                                      └───────────────────┘            │
+                                                               │                       ▼
+                                                              No               ┌───────────────────┐
+                                                               │               │   Return Data     │
+                                                               ▼               └───────────────────┘
+                                                      ┌───────────────────┐
+                                                      │  Show User Message│
+                                                      └───────────────────┘
 ```
 
 ## 🛠️ Installation
@@ -83,100 +113,112 @@ finance-integration/
     pip install -r requirements.txt
     ```
 
-4. Set environment variables:
+4. Set up NLTK resources (resolves SSL certificate issues):
+    ```bash
+    python utils/setup_nltk.py
+    ```
+
+5. Set environment variables:
     ```bash
     export ALPHA_VANTAGE_API_KEY=your_api_key
     export FINNHUB_API_KEY=your_api_key
     export DATABASE_URL=postgresql://username:password@localhost:5432/finance_db
     ```
 
-5. Run the ETL pipeline to fill the database:
+6. Run the ETL pipeline to fill the database:
     ```bash
     flask run-etl
     ```
 
-6. Run the application:
-    ```bash
-    flask run
-    ```
+## 🚀 Running the Application
 
-## 🔄 Data Flow
-
-### ETL Pipeline Architecture
-
-The application features a fully refactored ETL pipeline that centralizes all data operations:
-
-1. **Stock Price ETL**
-   - Extract: Fetch daily stock price data from Alpha Vantage API
-   - Transform: Calculate moving averages, volatility, and normalize data
-   - Load: Store in `stock_prices` table
-
-2. **News ETL**
-   - Extract: Fetch company news from Finnhub API
-   - Transform: Perform sentiment analysis and normalize data
-   - Load: Store in `news_articles` table with efficient upsert logic
-
-3. **Financials ETL**
-   - Extract: Fetch quarterly and annual financial reports from Finnhub API
-   - Transform: Extract key metrics (revenue, net income, EPS) and normalize data
-   - Load: Store in `financial_reports` table with proper relationships
-
-4. **Earnings ETL**
-   - Extract: Fetch earnings reports from Finnhub API
-   - Transform: Calculate surprises, period information, and normalize data
-   - Load: Store in `earnings` table with data validation
-
-### Multi-layered Data Access Architecture
-
-Our application implements a three-layered architecture for data access:
-
-1. **ETL Pipelines** (Primary): Responsible for extracting, transforming, and loading data into the database
-2. **Service Adapters**: Smart adapters that determine the best way to fetch data
-3. **Direct API Access** (Fallback): Used only when database access fails
-
-This provides:
-- **Performance**: Most requests are served from the database
-- **Freshness**: Stale data is automatically refreshed
-- **Reliability**: Multiple fallback mechanisms
-- **Backward Compatibility**: Legacy code continues to function
-
-### Running the ETL Pipeline
-
-The ETL pipeline can be run through the command line interface:
-
+Start the Flask application:
 ```bash
-# Run ETL for all stock symbols
-flask run-etl
-
-# Run ETL for a specific symbol
-flask run-etl --symbol CGC
+python app.py
 ```
 
-### Dashboard Data Flow
+Access the dashboard at http://localhost:5000
 
-1. **Database Queries**: Dashboard loads data from PostgreSQL database via SQLAlchemy models
-2. **Caching**: Results are cached to improve performance and reduce API calls
-3. **Parallel Processing**: Data for different stocks is loaded in parallel using threading
-4. **Visualization**: Generate interactive charts with Plotly through Flask routes
-5. **Download**: Export stock data as CSV files (raw or transformed) for offline analysis
+## 📦 Project Structure
 
-## 📥 Data Download
+```
+finance-integration/
+├── app.py                 # Flask application entry point
+├── config.py              # Configuration settings
+├── requirements.txt       # Project dependencies
+├── run_etl.py             # ETL pipeline runner
+├── etl/                   # ETL modules
+│   ├── stock_etl.py       # Stock data ETL
+│   ├── news_etl.py        # News data ETL
+│   ├── financials_etl.py  # Financial data ETL
+│   ├── earnings_etl.py    # Earnings data ETL
+├── models/                # Data models
+│   └── db_models.py       # SQLAlchemy models
+├── services/              # Service adapters
+│   ├── stocks.py          # Stock data service
+│   ├── news.py            # News service
+│   ├── financials.py      # Financials service
+│   ├── earnings.py        # Earnings service
+│   ├── alternative_financials.py # Yahoo Finance integration
+│   └── hardcoded_financials.py  # Hardcoded data for exceptional cases
+├── views/                 # Flask views/routes
+│   ├── dashboard.py       # Main dashboard view
+│   └── news.py            # News view
+├── utils/                 # Utility functions
+│   ├── cache.py           # Caching utilities
+│   ├── data_processing.py # Data processing helpers
+│   └── logging_config.py  # Logging configuration
+├── static/                # Static assets (CSS, JS)
+└── templates/             # Jinja2 templates
+```
 
-Each stock on the dashboard includes two download options:
+## 📊 Dashboard Features
 
-- **Download [SYMBOL] Data (CSV)**: Download the transformed dataset including calculated fields like moving averages and volatility
-- **Download Raw Data**: Download the original API data without transformations
+- **Stock Price Chart**: Interactive visualization with adjustable timeframe
+- **Financial Metrics**: Revenue, net income, and earnings data
+- **News Sentiment**: Aggregated news with sentiment analysis
+- **Compare Stocks**: View multiple cannabis stocks side-by-side
+- **Data Source Attribution**: See which data source is being used for transparency
+- **Data Source Comparison**: Compare financial metrics between different data providers
+- **Maximum Data Coverage**: Multi-layered approach ensures data is available even for hard-to-cover stocks
 
-This feature allows data scientists and analysts to perform their own analysis using the raw or processed data.
+## 🔄 Switching to Production
 
-## 🤝 Contributing
+1. Configure a production database:
+    ```bash
+    export DATABASE_URL=postgresql://user:pass@production-db-host:5432/finance_db
+    ```
 
-Contributions, issues, and feature requests are welcome! Feel free to check the [issues page](https://github.com/mseijse01/finance-integration/issues).
+2. Set up Gunicorn:
+    ```bash
+    gunicorn --workers=4 --bind=0.0.0.0:8000 app:app
+    ```
 
-## 📝 License
+3. Set up a reverse proxy (Nginx recommended)
 
-This project is [MIT](LICENSE) licensed.
+## 🧑‍💻 Development
 
-## 🙋‍♂️ Author
+### Adding a New Stock
 
-Made by Marcelo Seijas
+Edit `views/dashboard.py` and add the ticker to the `cannabis_stocks` list.
+
+### Adding Hardcoded Financial Data
+
+For stocks with limited API coverage, add hardcoded data to `services/hardcoded_financials.py`.
+
+### Custom ETL Run
+
+Run ETL pipeline for a specific stock:
+```bash
+flask run-etl --symbol=CGC
+```
+
+## 📚 Documentation
+
+- [API Documentation](documentation/api.md)
+- [ETL Pipeline](documentation/etl_pipeline.md)
+- [Yahoo Finance Integration](documentation/yahoo_finance_integration.md)
+
+## 📜 License
+
+MIT License - See LICENSE file for details.

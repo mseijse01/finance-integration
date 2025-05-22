@@ -22,6 +22,14 @@ from utils.cache import timed_cache, clear_cache, get_cache_stats
 import numpy as np
 from sqlalchemy import desc
 import time
+from services.financials import fetch_financials
+from services.alternative_financials import (
+    fetch_yahoo_financials,
+    compare_financial_sources,
+)
+import os
+import json
+import services.earnings
 
 dashboard_bp = Blueprint("dashboard", __name__)
 
@@ -464,19 +472,57 @@ def dashboard():
 
     # Helper function to process financials and earnings data
     def process_financials(symbol):
-        financials = get_financials_from_db(symbol, report_type="quarterly")
-        if not financials or not financials.get("data"):
-            financials = get_financials_from_db(symbol, report_type="annual")
+        # First try to get Finnhub data through our standard pipeline
+        finnhub_financials = services.financials.fetch_financials(
+            symbol, freq="quarterly"
+        )
+        if not finnhub_financials or not finnhub_financials.get("data"):
+            finnhub_financials = services.financials.fetch_financials(
+                symbol, freq="annual"
+            )
 
-        earnings = get_earnings_from_db(symbol)
+        # Get Yahoo Finance data for comparison
+        yahoo_data = fetch_yahoo_financials(symbol)
+
+        # Get earnings data
+        earnings = services.earnings.fetch_earnings(symbol)
 
         # Process financials
         revenue = net_income = "N/A"
         report_period = "N/A"
+        data_source = "N/A"
+        comparison_data = None
 
-        if financials and financials.get("data") and len(financials["data"]) > 0:
-            # Get the most recent financial report
-            report_data = financials["data"][0]
+        # Determine which source has data and should be primary
+        has_finnhub_data = (
+            finnhub_financials
+            and finnhub_financials.get("data")
+            and len(finnhub_financials["data"]) > 0
+        )
+        has_yahoo_data = yahoo_data and (
+            (
+                yahoo_data.get("quarterly_financials")
+                and yahoo_data["quarterly_financials"].get("data")
+                and len(yahoo_data["quarterly_financials"]["data"]) > 0
+            )
+            or (
+                yahoo_data.get("annual_financials")
+                and yahoo_data["annual_financials"].get("data")
+                and len(yahoo_data["annual_financials"]["data"]) > 0
+            )
+        )
+
+        # If both sources have data, generate a comparison
+        if has_finnhub_data and has_yahoo_data:
+            comparison_data = compare_financial_sources(
+                symbol, finnhub_financials, yahoo_data
+            )
+
+        # Primary source processing
+        if has_finnhub_data:
+            # Get the most recent financial report from Finnhub
+            report_data = finnhub_financials["data"][0]
+            data_source = "Finnhub"
 
             # Try to get pre-extracted metrics directly from the database model fields first
             session = SessionLocal()
@@ -555,9 +601,67 @@ def dashboard():
             elif year:
                 report_period = f"{year}"
 
+        # If no Finnhub data or data is incomplete, try Yahoo Finance
+        elif has_yahoo_data:
+            # Get the most recent financial report from Yahoo Finance
+            yahoo_financials = yahoo_data.get("quarterly_financials", {}).get(
+                "data", []
+            )
+            if not yahoo_financials:
+                yahoo_financials = yahoo_data.get("annual_financials", {}).get(
+                    "data", []
+                )
+
+            if yahoo_financials:
+                report_data = yahoo_financials[0]
+                data_source = "Yahoo Finance"
+
+                # Extract metrics from Yahoo Finance data
+                try:
+                    if "report" in report_data:
+                        report = report_data.get("report", {})
+
+                        if revenue == "N/A":
+                            revenue = extract_financial_metric(
+                                report,
+                                [
+                                    "Revenue",
+                                    "Total Revenue",
+                                    "totalRevenue",
+                                    "revenues",
+                                ],
+                            )
+
+                        if net_income == "N/A":
+                            net_income = extract_financial_metric(
+                                report, ["Net Income", "netIncome", "net_income"]
+                            )
+
+                        # Get quarter/year information
+                        year = report_data.get("year", "")
+                        quarter = report_data.get("quarter", "")
+                        if year and quarter:
+                            report_period = f"Q{quarter} {year}"
+                        elif year:
+                            report_period = f"{year}"
+                except Exception as e:
+                    logger.warning(f"Failed to extract metrics from Yahoo Finance: {e}")
+        else:
+            # For stocks with no financial data from any source
+            data_source = "No Data Available"
+            report_period = "No data found in Finnhub or Yahoo Finance"
+            # Try to handle specific stocks (like ACB) with known financial issues
+            if symbol == "ACB":
+                data_source = "No Data Available - Use Alternative Source"
+                report_period = "Aurora Cannabis data not available in our sources"
+                revenue = "See Investor Relations"
+                net_income = "See Investor Relations"
+
         # Process earnings
         eps = date = "N/A"
         quarter_info = ""
+        earnings_source = "N/A"
+
         if earnings and isinstance(earnings, list) and len(earnings) > 0:
             try:
                 # Sort earnings by date, newest first
@@ -570,6 +674,9 @@ def dashboard():
                 )
                 latest = sorted_earnings[0]
 
+                # Get the data source
+                earnings_source = latest.get("source", "Finnhub")
+
                 # Get EPS data from eps_actual if available (new format) or fallback to older attributes
                 eps = (
                     latest.get("actual")
@@ -581,11 +688,14 @@ def dashboard():
 
                 # Add quarter information
                 if date != "N/A":
-                    date_obj = datetime.strptime(date, "%Y-%m-%d")
-                    month = date_obj.month
-                    year = date_obj.year
-                    quarter = (month - 1) // 3 + 1
-                    quarter_info = f"Q{quarter} {year}"
+                    try:
+                        date_obj = datetime.strptime(date, "%Y-%m-%d")
+                        month = date_obj.month
+                        year = date_obj.year
+                        quarter = (month - 1) // 3 + 1
+                        quarter_info = f"Q{quarter} {year}"
+                    except ValueError:
+                        quarter_info = date  # Use the raw date if parsing fails
             except Exception as e:
                 logger.warning(
                     f"Could not parse earnings date for {symbol}", exc_info=True
@@ -619,6 +729,98 @@ def dashboard():
         # Get last update timestamp for data freshness indicator
         last_updated = datetime.now().strftime("%b %d, %Y %H:%M")
 
+        # Special message for stocks with missing data
+        data_message = ""
+        if (
+            data_source == "No Data Available"
+            or data_source == "No Data Available - Use Alternative Source"
+        ):
+            data_message = f"""
+            <div class="alert alert-warning mt-2">
+                <h6><i class="bi bi-exclamation-triangle"></i> Limited Financial Data</h6>
+                <p class="small mb-0">Financial data for {symbol} is not available in our integrated data sources. 
+                For the most accurate and up-to-date financial information, please visit the company's investor relations website.</p>
+            </div>
+            """
+
+        # Create the comparison section if available
+        comparison_html = ""
+        if comparison_data and comparison_data.get("has_discrepancies"):
+            comparison_html = """
+            <div class="mt-3">
+                <div class="alert alert-info">
+                    <h6><i class="bi bi-exclamation-circle"></i> Data Source Comparison</h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered">
+                            <thead>
+                                <tr>
+                                    <th>Period</th>
+                                    <th>Metric</th>
+                                    <th>Finnhub</th>
+                                    <th>Yahoo Finance</th>
+                                    <th>Diff %</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+            """
+
+            # Add quarterly comparison rows
+            for comparison in comparison_data.get("quarterly", []):
+                if comparison.get("has_discrepancy"):
+                    period = comparison.get("period", "")
+
+                    # Revenue row
+                    revenue_metrics = comparison.get("metrics", {}).get("revenue", {})
+                    if revenue_metrics.get("is_significant"):
+                        finnhub_val = format_financial_value(
+                            revenue_metrics.get("finnhub")
+                        )
+                        yahoo_val = format_financial_value(revenue_metrics.get("yahoo"))
+                        diff = revenue_metrics.get("diff_percentage", 0)
+                        diff_class = "text-danger" if abs(diff) > 10 else "text-warning"
+
+                        comparison_html += f"""
+                        <tr>
+                            <td>{period}</td>
+                            <td>Revenue</td>
+                            <td>{finnhub_val}</td>
+                            <td>{yahoo_val}</td>
+                            <td class="{diff_class}">{diff:.1f}%</td>
+                        </tr>
+                        """
+
+                    # Net Income row
+                    net_income_metrics = comparison.get("metrics", {}).get(
+                        "net_income", {}
+                    )
+                    if net_income_metrics.get("is_significant"):
+                        finnhub_val = format_financial_value(
+                            net_income_metrics.get("finnhub")
+                        )
+                        yahoo_val = format_financial_value(
+                            net_income_metrics.get("yahoo")
+                        )
+                        diff = net_income_metrics.get("diff_percentage", 0)
+                        diff_class = "text-danger" if abs(diff) > 10 else "text-warning"
+
+                        comparison_html += f"""
+                        <tr>
+                            <td>{period}</td>
+                            <td>Net Income</td>
+                            <td>{finnhub_val}</td>
+                            <td>{yahoo_val}</td>
+                            <td class="{diff_class}">{diff:.1f}%</td>
+                        </tr>
+                        """
+
+            comparison_html += """
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            """
+
         # Format the financials section with Bootstrap styling
         return f"""
             <div class="row">
@@ -627,7 +829,7 @@ def dashboard():
                         <div class="card-body py-2">
                             <h6 class="card-title mb-1">Revenue</h6>
                             <p class="card-text fs-5">{format_financial_value(revenue) if revenue != "N/A" else '<span class="text-muted fst-italic">N/A</span>'}</p>
-                            <small class="text-muted">{report_period}</small>
+                            <small class="text-muted">{report_period} <span class="badge bg-secondary">{data_source}</span></small>
                         </div>
                     </div>
                 </div>
@@ -636,7 +838,7 @@ def dashboard():
                         <div class="card-body py-2">
                             <h6 class="card-title mb-1">Net Income</h6>
                             <p class="card-text fs-5 {net_income_class}">{format_financial_value(net_income) if net_income != "N/A" else '<span class="text-muted fst-italic">N/A</span>'}</p>
-                            <small class="text-muted">{report_period}</small>
+                            <small class="text-muted">{report_period} <span class="badge bg-secondary">{data_source}</span></small>
                         </div>
                     </div>
                 </div>
@@ -645,7 +847,7 @@ def dashboard():
                         <div class="card-body py-2">
                             <h6 class="card-title mb-1">EPS</h6>
                             <p class="card-text fs-5 {eps_class}">{format_financial_value(eps) if eps != "N/A" else '<span class="text-muted fst-italic">N/A</span>'}</p>
-                            <small class="text-muted">{quarter_info}</small>
+                            <small class="text-muted">{quarter_info} <span class="badge bg-secondary">{earnings_source}</span></small>
                         </div>
                     </div>
                 </div>
@@ -654,11 +856,13 @@ def dashboard():
                         <div class="card-body py-2">
                             <h6 class="card-title mb-1">Earnings Date</h6>
                             <p class="card-text fs-5">{date if date != "N/A" else '<span class="text-muted fst-italic">N/A</span>'}</p>
-                            <small class="text-muted">Last report</small>
+                            <small class="text-muted">Last report <span class="badge bg-secondary">{earnings_source}</span></small>
                         </div>
                     </div>
                 </div>
             </div>
+            {data_message}
+            {comparison_html}
             <div class="text-end mb-3">
                 <small class="text-muted">Data as of: {last_updated}</small>
             </div>
