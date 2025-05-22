@@ -7,16 +7,21 @@ import plotly.io as pio
 from datetime import datetime, timedelta
 import io
 import csv
-from services.news import fetch_company_news
-from services.financials import fetch_financials
-from services.earnings import fetch_earnings
-from models.db_models import SessionLocal, StockPrice
+from models.db_models import (
+    SessionLocal,
+    StockPrice,
+    NewsArticle,
+    FinancialReport,
+    Earnings,
+)
 from utils.logging_config import logger
 from etl.extraction import fetch_stock_data
 from etl.transformation import transform_stock_data
 import threading
 from utils.cache import timed_cache, clear_cache, get_cache_stats
 import numpy as np
+from sqlalchemy import desc
+import time
 
 dashboard_bp = Blueprint("dashboard", __name__)
 
@@ -24,18 +29,33 @@ dashboard_bp = Blueprint("dashboard", __name__)
 # Define the background data loading mechanism
 def load_stock_data_background():
     """Load all stock data in the background to warm up cache"""
+    # We need to import these functions inside the thread to avoid circular imports
+    # and ensure the functions are defined before being called
+    from views.dashboard import (
+        get_news_from_db,
+        get_financials_from_db,
+        get_earnings_from_db,
+    )
+
     cannabis_stocks = ["CGC", "ACB", "CRON", "TLRY"]
     for symbol in cannabis_stocks:
         try:
-            fetch_company_news(symbol)
-            fetch_financials(symbol)
-            fetch_earnings(symbol)
+            get_news_from_db(symbol)
+            get_financials_from_db(symbol)
+            get_earnings_from_db(symbol)
         except Exception as e:
             logger.error(f"Error preloading data for {symbol}: {e}")
 
 
 # Start background data loading on module import
-threading.Thread(target=load_stock_data_background, daemon=True).start()
+# Delay the thread start to ensure all functions are defined
+def start_background_loading():
+    time.sleep(2)  # Wait 2 seconds to ensure all functions are defined
+    threading.Thread(target=load_stock_data_background, daemon=True).start()
+
+
+# Schedule the background loading to start after a delay
+threading.Thread(target=start_background_loading, daemon=True).start()
 
 
 @timed_cache(expire_seconds=300)  # Cache DB results for 5 minutes
@@ -62,6 +82,161 @@ def get_stock_price_data(symbol, days=180):
         if len(records) > 100:
             return downsample_data(records)
         return records
+    finally:
+        session.close()
+
+
+@timed_cache(expire_seconds=300)  # Cache DB results for 5 minutes
+def get_news_from_db(symbol, limit=10):
+    """
+    Get news articles from database.
+    """
+    session = SessionLocal()
+    try:
+        logger.info(f"Getting news from database for {symbol}")
+        query = (
+            session.query(NewsArticle)
+            .filter(NewsArticle.symbol == symbol)
+            .order_by(desc(NewsArticle.datetime))
+            .limit(limit)
+        )
+        news_records = query.all()
+
+        if not news_records:
+            logger.warning(f"No news found in database for {symbol}")
+            return []
+
+        # Convert to dictionary format
+        news = []
+        for record in news_records:
+            news_item = {
+                "headline": record.headline,
+                "summary": record.summary,
+                "url": record.url,
+                "source": record.source,
+                "datetime": record.datetime.timestamp() if record.datetime else None,
+                "sentiment": record.sentiment,
+                "category": record.category,
+                "related": record.related,
+            }
+            news.append(news_item)
+
+        logger.info(f"Retrieved {len(news)} news articles from database for {symbol}")
+        return news
+    except Exception as e:
+        logger.error(
+            f"Error retrieving news from database for {symbol}: {e}", exc_info=True
+        )
+        return []
+    finally:
+        session.close()
+
+
+@timed_cache(expire_seconds=600)  # Cache DB results for 10 minutes
+def get_financials_from_db(symbol, report_type="quarterly", limit=4):
+    """
+    Get financial reports from database.
+    """
+    session = SessionLocal()
+    try:
+        logger.info(f"Getting {report_type} financials from database for {symbol}")
+        query = (
+            session.query(FinancialReport)
+            .filter(
+                FinancialReport.symbol == symbol,
+                FinancialReport.report_type == report_type,
+            )
+            .order_by(
+                desc(FinancialReport.year),
+                desc(FinancialReport.quarter)
+                if report_type == "quarterly"
+                else desc(FinancialReport.year),
+            )
+            .limit(limit)
+        )
+        financial_records = query.all()
+
+        if not financial_records:
+            # Fallback to annual if quarterly not found
+            if report_type == "quarterly":
+                logger.warning(
+                    f"No quarterly financials found, trying annual for {symbol}"
+                )
+                return get_financials_from_db(symbol, "annual", limit)
+            else:
+                logger.warning(f"No financials found in database for {symbol}")
+                return {"data": []}
+
+        # Convert to the format expected by the dashboard
+        data = []
+        for record in financial_records:
+            financial_data = {
+                "year": record.year,
+                "quarter": record.quarter,
+                "report": record.report_data,
+                "filing_date": record.filing_date.strftime("%Y-%m-%d")
+                if record.filing_date
+                else None,
+            }
+            data.append(financial_data)
+
+        logger.info(
+            f"Retrieved {len(data)} financial reports from database for {symbol}"
+        )
+        return {"data": data}
+    except Exception as e:
+        logger.error(
+            f"Error retrieving financials from database for {symbol}: {e}",
+            exc_info=True,
+        )
+        return {"data": []}
+    finally:
+        session.close()
+
+
+@timed_cache(expire_seconds=600)  # Cache DB results for 10 minutes
+def get_earnings_from_db(symbol, limit=4):
+    """
+    Get earnings data from database.
+    """
+    session = SessionLocal()
+    try:
+        logger.info(f"Getting earnings from database for {symbol}")
+        query = (
+            session.query(Earnings)
+            .filter(Earnings.symbol == symbol)
+            .order_by(desc(Earnings.period))
+            .limit(limit)
+        )
+        earnings_records = query.all()
+
+        if not earnings_records:
+            logger.warning(f"No earnings found in database for {symbol}")
+            return []
+
+        # Convert to the format expected by the dashboard
+        earnings = []
+        for record in earnings_records:
+            earning_data = {
+                "actual": record.eps_actual,
+                "estimate": record.eps_estimate,
+                "surprise": record.eps_surprise,
+                "surprisePercent": record.eps_surprise_percent,
+                "period": record.period.strftime("%Y-%m-%d") if record.period else None,
+                "quarter": record.quarter,
+                "year": record.year,
+            }
+            earnings.append(earning_data)
+
+        logger.info(
+            f"Retrieved {len(earnings)} earnings records from database for {symbol}"
+        )
+        return earnings
+    except Exception as e:
+        logger.error(
+            f"Error retrieving earnings from database for {symbol}: {e}", exc_info=True
+        )
+        return []
     finally:
         session.close()
 
@@ -137,8 +312,6 @@ def dashboard():
     }
 
     # Get display timeframe from query parameter, default to 6 months
-    from flask import request
-
     timeframe = request.args.get("timeframe", "6m")
 
     # Convert timeframe to days
@@ -226,11 +399,11 @@ def dashboard():
                     col=1,
                 )
 
-        # Get and process news (cached)
-        news = fetch_company_news(symbol)
+        # Get and process news (from DB)
+        news = get_news_from_db(symbol)
         news_html = process_news(news, symbol)
 
-        # Get financials and earnings (cached)
+        # Get financials and earnings (from DB)
         financials_html = process_financials(symbol)
 
         # Store results in shared dictionaries
@@ -291,40 +464,103 @@ def dashboard():
 
     # Helper function to process financials and earnings data
     def process_financials(symbol):
-        financials = fetch_financials(symbol, freq="quarterly")
+        financials = get_financials_from_db(symbol, report_type="quarterly")
         if not financials or not financials.get("data"):
-            financials = fetch_financials(symbol, freq="annual")
+            financials = get_financials_from_db(symbol, report_type="annual")
 
-        earnings = fetch_earnings(symbol)
+        earnings = get_earnings_from_db(symbol)
 
         # Process financials
-        if financials and financials.get("data"):
-            report = financials["data"][0].get("report", {})
-            revenue = extract_financial_metric(
-                report, ["Revenue", "totalRevenue", "revenues"]
-            )
-            net_income = extract_financial_metric(
-                report, ["Net Income", "netIncome", "net_income"]
-            )
+        revenue = net_income = "N/A"
+        report_period = "N/A"
+
+        if financials and financials.get("data") and len(financials["data"]) > 0:
+            # Get the most recent financial report
+            report_data = financials["data"][0]
+
+            # Try to get pre-extracted metrics directly from the database model fields first
+            session = SessionLocal()
+            try:
+                latest_financial = (
+                    session.query(FinancialReport)
+                    .filter(
+                        FinancialReport.symbol == symbol,
+                        FinancialReport.year == report_data.get("year"),
+                        FinancialReport.quarter == report_data.get("quarter"),
+                        FinancialReport.report_type == "quarterly"
+                        if report_data.get("quarter")
+                        else "annual",
+                    )
+                    .first()
+                )
+
+                if latest_financial:
+                    # Use pre-extracted fields from the database model if available
+                    if latest_financial.revenue is not None:
+                        revenue = latest_financial.revenue
+                    if latest_financial.net_income is not None:
+                        net_income = latest_financial.net_income
+            except Exception as e:
+                logger.warning(f"Could not get financial metrics from database: {e}")
+            finally:
+                session.close()
+
+            # If we still don't have values, try to extract from the report data
+            if revenue == "N/A" or net_income == "N/A":
+                # Method 1: Extract from report_data using the extract_financial_metric function
+                if "report_data" in report_data and report_data["report_data"]:
+                    try:
+                        # Try to extract from the full report structure
+                        full_report = report_data["report_data"]
+
+                        # Try different possible paths to find income statement data
+                        if revenue == "N/A":
+                            revenue = extract_financial_metric_deep(
+                                full_report, ["Revenue", "totalRevenue", "revenues"]
+                            )
+
+                        if net_income == "N/A":
+                            net_income = extract_financial_metric_deep(
+                                full_report, ["Net Income", "netIncome", "net_income"]
+                            )
+                    except Exception as e:
+                        logger.warning(
+                            f"Failed to extract metrics from report_data: {e}"
+                        )
+
+                # Method 2: Try the original method on the 'report' field if metrics still not found
+                if (
+                    revenue == "N/A" or net_income == "N/A"
+                ) and "report" in report_data:
+                    try:
+                        report = report_data.get("report", {})
+
+                        if revenue == "N/A":
+                            revenue = extract_financial_metric(
+                                report, ["Revenue", "totalRevenue", "revenues"]
+                            )
+
+                        if net_income == "N/A":
+                            net_income = extract_financial_metric(
+                                report, ["Net Income", "netIncome", "net_income"]
+                            )
+                    except Exception as e:
+                        logger.warning(f"Failed to extract metrics from report: {e}")
 
             # Get quarter/year information
-            report_period = "N/A"
-            if financials.get("data") and len(financials["data"]) > 0:
-                year = financials["data"][0].get("year", "")
-                quarter = financials["data"][0].get("quarter", "")
-                if year and quarter:
-                    report_period = f"Q{quarter} {year}"
-                elif year:
-                    report_period = f"{year}"
-        else:
-            revenue = net_income = "N/A"
-            report_period = "N/A"
+            year = report_data.get("year", "")
+            quarter = report_data.get("quarter", "")
+            if year and quarter:
+                report_period = f"Q{quarter} {year}"
+            elif year:
+                report_period = f"{year}"
 
         # Process earnings
         eps = date = "N/A"
         quarter_info = ""
-        if earnings and isinstance(earnings, list):
+        if earnings and isinstance(earnings, list) and len(earnings) > 0:
             try:
+                # Sort earnings by date, newest first
                 sorted_earnings = sorted(
                     earnings,
                     key=lambda x: datetime.strptime(
@@ -333,9 +569,11 @@ def dashboard():
                     reverse=True,
                 )
                 latest = sorted_earnings[0]
+
+                # Get EPS data from eps_actual if available (new format) or fallback to older attributes
                 eps = (
                     latest.get("actual")
-                    or latest.get("eps")
+                    or latest.get("eps_actual")
                     or latest.get("epsActual")
                     or "N/A"
                 )
@@ -388,7 +626,7 @@ def dashboard():
                     <div class="card bg-light mb-3">
                         <div class="card-body py-2">
                             <h6 class="card-title mb-1">Revenue</h6>
-                            <p class="card-text fs-5">{revenue if revenue != "N/A" else '<span class="text-muted fst-italic">N/A</span>'}</p>
+                            <p class="card-text fs-5">{format_financial_value(revenue) if revenue != "N/A" else '<span class="text-muted fst-italic">N/A</span>'}</p>
                             <small class="text-muted">{report_period}</small>
                         </div>
                     </div>
@@ -397,7 +635,7 @@ def dashboard():
                     <div class="card bg-light mb-3">
                         <div class="card-body py-2">
                             <h6 class="card-title mb-1">Net Income</h6>
-                            <p class="card-text fs-5 {net_income_class}">{net_income if net_income != "N/A" else '<span class="text-muted fst-italic">N/A</span>'}</p>
+                            <p class="card-text fs-5 {net_income_class}">{format_financial_value(net_income) if net_income != "N/A" else '<span class="text-muted fst-italic">N/A</span>'}</p>
                             <small class="text-muted">{report_period}</small>
                         </div>
                     </div>
@@ -406,7 +644,7 @@ def dashboard():
                     <div class="card bg-light mb-3">
                         <div class="card-body py-2">
                             <h6 class="card-title mb-1">EPS</h6>
-                            <p class="card-text fs-5 {eps_class}">{eps if eps != "N/A" else '<span class="text-muted fst-italic">N/A</span>'}</p>
+                            <p class="card-text fs-5 {eps_class}">{format_financial_value(eps) if eps != "N/A" else '<span class="text-muted fst-italic">N/A</span>'}</p>
                             <small class="text-muted">{quarter_info}</small>
                         </div>
                     </div>
@@ -508,6 +746,100 @@ def extract_financial_metric(report_data, possible_keys):
             if key.lower() in concept:
                 return item.get("value", "N/A")
     return "N/A"
+
+
+def extract_financial_metric_deep(report_data, possible_keys):
+    """
+    Deeper search helper to extract a metric from possibly nested structures.
+    Will recursively look through various potential locations for financial data.
+    """
+    # First try extracting from standard format
+    if isinstance(report_data, dict):
+        # Try the standard income statement format
+        if "ic" in report_data:
+            result = extract_financial_metric(report_data, possible_keys)
+            if result != "N/A":
+                return result
+
+        # Try the report.ic path (one level deeper)
+        if "report" in report_data and isinstance(report_data["report"], dict):
+            if "ic" in report_data["report"]:
+                result = extract_financial_metric(report_data["report"], possible_keys)
+                if result != "N/A":
+                    return result
+
+        # Try direct key access - sometimes financial metrics are directly in the root
+        for key in possible_keys:
+            if key.lower() in report_data:
+                value = report_data.get(key.lower())
+                if value is not None:
+                    return value
+
+    # Last resort: try to find any field that contains any of the keys at any level
+    if isinstance(report_data, dict):
+        for k, v in report_data.items():
+            k_lower = k.lower()
+            # Check if this key matches any of our target keys
+            for target_key in possible_keys:
+                if target_key.lower() in k_lower:
+                    if isinstance(v, (int, float, str)):
+                        return v
+                    elif isinstance(v, dict) and "value" in v:
+                        return v["value"]
+
+            # Recursively search nested dictionaries
+            if isinstance(v, dict):
+                result = extract_financial_metric_deep(v, possible_keys)
+                if result != "N/A":
+                    return result
+            elif isinstance(v, list):
+                for item in v:
+                    if isinstance(item, dict):
+                        for ik, iv in item.items():
+                            if any(key.lower() in ik.lower() for key in possible_keys):
+                                return iv
+
+                        # Check if this item has a concept that matches our keys
+                        if "concept" in item:
+                            concept = item["concept"].lower()
+                            for key in possible_keys:
+                                if key.lower() in concept:
+                                    return item.get("value", "N/A")
+
+    return "N/A"
+
+
+def format_financial_value(value):
+    """Format financial values for display"""
+    if isinstance(value, (int, float)):
+        # Determine if the value is negative
+        is_negative = value < 0
+        abs_value = abs(value)
+
+        # Format based on magnitude
+        if abs_value >= 1_000_000_000:
+            formatted = f"${abs_value / 1_000_000_000:.2f}B"
+        elif abs_value >= 1_000_000:
+            formatted = f"${abs_value / 1_000_000:.2f}M"
+        else:
+            formatted = f"${abs_value:,.2f}"
+
+        # Add negative sign if needed
+        if is_negative:
+            return "-" + formatted
+        return formatted
+
+    # Handle string values which may already be formatted
+    elif isinstance(value, str):
+        try:
+            # Try to convert to float and reformat
+            numeric_value = float(value.replace("$", "").replace(",", ""))
+            return format_financial_value(numeric_value)
+        except (ValueError, TypeError):
+            # If it's not convertible to a number, return as is
+            return value
+
+    return value
 
 
 @dashboard_bp.route("/download/<symbol>")
