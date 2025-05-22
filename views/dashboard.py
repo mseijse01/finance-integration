@@ -306,11 +306,23 @@ def dashboard():
             net_income = extract_financial_metric(
                 report, ["Net Income", "netIncome", "net_income"]
             )
+
+            # Get quarter/year information
+            report_period = "N/A"
+            if financials.get("data") and len(financials["data"]) > 0:
+                year = financials["data"][0].get("year", "")
+                quarter = financials["data"][0].get("quarter", "")
+                if year and quarter:
+                    report_period = f"Q{quarter} {year}"
+                elif year:
+                    report_period = f"{year}"
         else:
             revenue = net_income = "N/A"
+            report_period = "N/A"
 
         # Process earnings
         eps = date = "N/A"
+        quarter_info = ""
         if earnings and isinstance(earnings, list):
             try:
                 sorted_earnings = sorted(
@@ -328,10 +340,46 @@ def dashboard():
                     or "N/A"
                 )
                 date = latest.get("period", "N/A")
+
+                # Add quarter information
+                if date != "N/A":
+                    date_obj = datetime.strptime(date, "%Y-%m-%d")
+                    month = date_obj.month
+                    year = date_obj.year
+                    quarter = (month - 1) // 3 + 1
+                    quarter_info = f"Q{quarter} {year}"
             except Exception as e:
                 logger.warning(
                     f"Could not parse earnings date for {symbol}", exc_info=True
                 )
+
+        # Determine visual classes for negative values
+        net_income_class = ""
+        eps_class = ""
+
+        try:
+            if isinstance(net_income, (int, float)) or (
+                isinstance(net_income, str)
+                and net_income.replace("-", "").replace(".", "").isdigit()
+            ):
+                net_income_value = float(str(net_income).replace(",", ""))
+                if net_income_value < 0:
+                    net_income_class = "text-danger"
+        except (ValueError, TypeError):
+            pass
+
+        try:
+            if isinstance(eps, (int, float)) or (
+                isinstance(eps, str) and eps.replace("-", "").replace(".", "").isdigit()
+            ):
+                eps_value = float(str(eps).replace(",", ""))
+                if eps_value < 0:
+                    eps_class = "text-danger"
+        except (ValueError, TypeError):
+            pass
+
+        # Get last update timestamp for data freshness indicator
+        last_updated = datetime.now().strftime("%b %d, %Y %H:%M")
 
         # Format the financials section with Bootstrap styling
         return f"""
@@ -340,7 +388,8 @@ def dashboard():
                     <div class="card bg-light mb-3">
                         <div class="card-body py-2">
                             <h6 class="card-title mb-1">Revenue</h6>
-                            <p class="card-text fs-5">{revenue}</p>
+                            <p class="card-text fs-5">{revenue if revenue != "N/A" else '<span class="text-muted fst-italic">N/A</span>'}</p>
+                            <small class="text-muted">{report_period}</small>
                         </div>
                     </div>
                 </div>
@@ -348,7 +397,8 @@ def dashboard():
                     <div class="card bg-light mb-3">
                         <div class="card-body py-2">
                             <h6 class="card-title mb-1">Net Income</h6>
-                            <p class="card-text fs-5">{net_income}</p>
+                            <p class="card-text fs-5 {net_income_class}">{net_income if net_income != "N/A" else '<span class="text-muted fst-italic">N/A</span>'}</p>
+                            <small class="text-muted">{report_period}</small>
                         </div>
                     </div>
                 </div>
@@ -356,7 +406,8 @@ def dashboard():
                     <div class="card bg-light mb-3">
                         <div class="card-body py-2">
                             <h6 class="card-title mb-1">EPS</h6>
-                            <p class="card-text fs-5">{eps}</p>
+                            <p class="card-text fs-5 {eps_class}">{eps if eps != "N/A" else '<span class="text-muted fst-italic">N/A</span>'}</p>
+                            <small class="text-muted">{quarter_info}</small>
                         </div>
                     </div>
                 </div>
@@ -364,10 +415,14 @@ def dashboard():
                     <div class="card bg-light mb-3">
                         <div class="card-body py-2">
                             <h6 class="card-title mb-1">Earnings Date</h6>
-                            <p class="card-text fs-5">{date}</p>
+                            <p class="card-text fs-5">{date if date != "N/A" else '<span class="text-muted fst-italic">N/A</span>'}</p>
+                            <small class="text-muted">Last report</small>
                         </div>
                     </div>
                 </div>
+            </div>
+            <div class="text-end mb-3">
+                <small class="text-muted">Data as of: {last_updated}</small>
             </div>
         """
 

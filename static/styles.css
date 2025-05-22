@@ -2,6 +2,7 @@
 body {
     background-color: #f8f9fa;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: #333;
 }
 
 /* Navbar styling */
@@ -62,7 +63,7 @@ h1, h2, h3, h4, h5 {
 }
 
 .neutral {
-    color: #6c757d;
+    color: #fd7e14;
 }
 
 /* Make the dashboard mobile responsive */
@@ -77,4 +78,80 @@ h1, h2, h3, h4, h5 {
     margin-top: 3rem;
     padding: 1.5rem 0;
     border-top: 1px solid #dee2e6;
+}
+
+/* News styling */
+.news-container {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.news-container::-webkit-scrollbar {
+    width: 6px;
+}
+
+.news-container::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+.news-container::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 3px;
+}
+
+.sentiment-summary {
+    background-color: #f8f9fa;
+    border-radius: 4px;
+}
+
+/* N/A value styling */
+.na-value {
+    color: #6c757d;
+    font-style: italic;
+}
+
+/* Card enhancements */
+.card {
+    transition: all 0.2s ease-in-out;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+
+.card:hover {
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .stock-grid {
+        min-height: auto;
+    }
+    
+    #chart-container {
+        min-height: 400px;
+    }
+    
+    .card-title {
+        font-size: 1.25rem;
+    }
+    
+    .financials .fs-5 {
+        font-size: 1rem !important;
+    }
+}
+
+/* Progress animations */
+.progress-bar {
+    transition: width 1s ease-in-out;
+}
+
+/* Make financial cards more compact on small screens */
+@media (max-width: 576px) {
+    .card-body {
+        padding: 0.75rem;
+    }
+    
+    .row .col-6 {
+        padding-left: 0.5rem;
+        padding-right: 0.5rem;
+    }
 }
