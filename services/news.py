@@ -3,12 +3,14 @@ from config import Config
 from utils.logging_config import logger
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
 import nltk
+from utils.cache import timed_cache
 
 # Ensure the lexicon is available
 nltk.download("vader_lexicon", quiet=True)
 sia = SentimentIntensityAnalyzer()
 
 
+@timed_cache(expire_seconds=3600)  # Cache news for 1 hour
 def fetch_company_news(symbol, days=30):
     """
     Fetch recent news articles for a given stock symbol and attach sentiment scores using VADER.

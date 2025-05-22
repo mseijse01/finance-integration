@@ -1,8 +1,10 @@
 import requests
 from config import Config
 from utils.logging_config import logger
+from utils.cache import timed_cache
 
 
+@timed_cache(expire_seconds=3600 * 12)  # Cache for 12 hours - financials rarely change
 def fetch_financials(symbol: str, freq: str = "quarterly"):
     """
     Fetches financials (reported) for a given stock symbol from Finnhub.

@@ -1,8 +1,12 @@
 import requests
 from config import Config
 from utils.logging_config import logger
+from utils.cache import timed_cache
 
 
+@timed_cache(
+    expire_seconds=3600 * 24
+)  # Cache for 24 hours - earnings reports are quarterly
 def fetch_earnings(symbol: str):
     url = "https://finnhub.io/api/v1/stock/earnings"
     params = {

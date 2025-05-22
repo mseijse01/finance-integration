@@ -1,11 +1,190 @@
 {% extends "base.html" %}
 {% block title %}Dashboard{% endblock %}
+
 {% block content %}
-    {{ graph|safe }}
-    {% for symbol, section in financials.items() %}
-        <h2>{{ symbol }} Financials & Earnings</h2>
-        {{ section|safe }}
-        <h3>News & Sentiment</h3>
-        {{ news_sections[symbol].headlines|safe }}
-    {% endfor %}
+    <!-- Loading Spinner -->
+    <div id="loading-overlay" class="d-flex justify-content-center align-items-center position-fixed top-0 start-0 w-100 h-100 bg-white" style="z-index: 9999; opacity: 0.8;">
+        <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+
+    <!-- Dashboard Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card bg-light">
+                <div class="card-body">
+                    <h1 class="card-title text-center">Cannabis Market Dashboard</h1>
+                    <p class="text-center text-muted">Tracking performance, financials, and sentiment for leading cannabis stocks</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Timeframe Selection Tabs -->
+    {{ timeframe_tabs|safe }}
+
+    <!-- Stock Chart -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0">Stock Price Comparison</h4>
+                    <div class="text-white-50 small">
+                        <i class="bi bi-info-circle"></i> 
+                        Use the legend to show/hide stocks
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div id="chart-container" class="position-relative">
+                        <div id="chart-loading" class="position-absolute top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center bg-light" style="z-index: 10; opacity: 0.7;">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading chart...</span>
+                            </div>
+                        </div>
+                        <div id="chart-content">
+                            {{ graph|safe }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stocks Grid -->
+    <div class="row stock-grid">
+        {% for symbol, section in financials.items() %}
+            <div class="col-md-6 mb-4">
+                <div class="card shadow-sm h-100">
+                    <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                        <h4 class="mb-0">{{ symbol }}</h4>
+                        <span class="badge bg-light text-dark">Cannabis</span>
+                    </div>
+                    
+                    <!-- Financials Section -->
+                    <div class="card-body">
+                        <h5 class="card-title mb-3">Financials & Earnings</h5>
+                        <div class="financials mb-4">
+                            {{ section|safe }}
+                        </div>
+                        
+                        <!-- Download Buttons -->
+                        <div class="d-flex mb-4">
+                            <a href="{{ url_for('dashboard.download_csv', symbol=symbol) }}" class="btn btn-primary me-2">
+                                <i class="bi bi-download"></i> Download Data
+                            </a>
+                            <a href="{{ url_for('dashboard.download_csv', symbol=symbol, data_type='raw') }}" class="btn btn-outline-secondary">
+                                <i class="bi bi-file-earmark-code"></i> Raw Data
+                            </a>
+                        </div>
+                        
+                        <!-- News Section -->
+                        <h5 class="card-title mb-3">
+                            News & Sentiment
+                            {% if news_sections[symbol].average_sentiment is not none %}
+                                {% if news_sections[symbol].average_sentiment > 0.3 %}
+                                    <span class="badge bg-success ms-2">Positive</span>
+                                {% elif news_sections[symbol].average_sentiment > 0 %}
+                                    <span class="badge bg-warning text-dark ms-2">Neutral</span>
+                                {% else %}
+                                    <span class="badge bg-danger ms-2">Negative</span>
+                                {% endif %}
+                            {% endif %}
+                        </h5>
+                        <div class="news-container">
+                            {{ news_sections[symbol].headlines|safe }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+{% endblock %}
+
+{% block styles %}
+<style>
+    /* Custom styling for financials display */
+    .financials p {
+        margin-bottom: 0.5rem;
+        padding: 0.5rem;
+        border-bottom: 1px solid #eee;
+    }
+    .financials p:last-child {
+        border-bottom: none;
+    }
+    
+    /* News styling */
+    .news-container ul {
+        padding-left: 1rem;
+    }
+    .news-container li {
+        margin-bottom: 0.5rem;
+    }
+    
+    /* Make plotly charts responsive */
+    .js-plotly-plot {
+        width: 100%;
+    }
+    
+    /* Loading animation */
+    @keyframes fadeOut {
+        from { opacity: 0.8; }
+        to { opacity: 0; visibility: hidden; }
+    }
+    
+    /* Improve layout shifts */
+    .stock-grid {
+        min-height: 800px;
+    }
+    
+    /* Chart container with fixed height to prevent layout shifts */
+    #chart-container {
+        min-height: 600px;
+    }
+    
+    /* Active timeframe button styling */
+    .btn-outline-primary.active {
+        background-color: #0d6efd;
+        color: white;
+    }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<!-- Bootstrap Icons -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+
+<!-- Performance optimization -->
+<script>
+    // Hide loading spinner when page is fully loaded
+    document.addEventListener('DOMContentLoaded', function() {
+        // Hide main loading overlay
+        setTimeout(function() {
+            const loadingOverlay = document.getElementById('loading-overlay');
+            loadingOverlay.style.animation = 'fadeOut 0.5s forwards';
+        }, 300);
+        
+        // Handle chart loading
+        const chartContainer = document.getElementById('chart-content');
+        const chartLoading = document.getElementById('chart-loading');
+        
+        // When chart content is loaded, hide the chart loading spinner
+        if (chartContainer && chartLoading) {
+            // Wait for Plotly to be fully initialized
+            setTimeout(function() {
+                chartLoading.style.animation = 'fadeOut 0.5s forwards';
+            }, 800);
+        }
+        
+        // Plotly responsive behavior
+        window.addEventListener('resize', function() {
+            const plotlyDivs = document.querySelectorAll('.js-plotly-plot');
+            if (plotlyDivs.length > 0 && typeof Plotly !== 'undefined') {
+                plotlyDivs.forEach(div => {
+                    Plotly.Plots.resize(div);
+                });
+            }
+        });
+    });
+</script>
 {% endblock %}
