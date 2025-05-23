@@ -6,30 +6,55 @@ Used as a secondary source or fallback when Finnhub data is unavailable.
 import yfinance as yf
 from datetime import datetime, timedelta
 from utils.logging_config import logger
-from utils.cache import timed_cache
+from utils.cache import adaptive_ttl_cache, rate_limited_api, RateLimitExceeded
 import pandas as pd
+import time
 
 
-@timed_cache(expire_seconds=3600 * 12)  # Cache for 12 hours
+@adaptive_ttl_cache(
+    base_ttl=3600 * 12, max_ttl=86400, error_ttl=300
+)  # 12h base, 24h max, 5min for errors
+@rate_limited_api(
+    calls_per_minute=3, retry_after=30, max_retries=2
+)  # Strict rate limiting for Yahoo API
 def fetch_yahoo_financials(symbol):
     """
     Fetch financial data for a given symbol from Yahoo Finance API.
     Returns quarterly and annual financial data.
+    Uses rate limiting and adaptive caching to prevent API errors.
     """
     try:
         logger.info(f"[YF] Fetching Yahoo Finance data for {symbol}")
-        # Get stock info
+        start_time = time.time()
+
+        # Add timeout to prevent hanging API calls
         ticker = yf.Ticker(symbol)
 
-        # Get financial data
+        # Add a timeout mechanism for hanging operations
+        def timeout_handler(max_time=30):
+            if time.time() - start_time > max_time:
+                logger.warning(
+                    f"[YF] Timed out while fetching data for {symbol} after {max_time} seconds"
+                )
+                raise TimeoutError(f"API request timed out after {max_time} seconds")
+
+        # Get financial data with timeout check
+        timeout_handler()
         quarterly_financials = process_financials(
             ticker.quarterly_financials, symbol, "quarterly"
         )
+
+        timeout_handler()
         annual_financials = process_financials(ticker.financials, symbol, "annual")
 
-        # Get earnings data - handle the YFNotImplementedError gracefully
+        # Get earnings data with better error handling
         quarterly_earnings = []
         annual_earnings = []
+
+        # Fail fast if we've already hit timeouts
+        timeout_handler()
+
+        # Try to get quarterly earnings but handle failures gracefully
         try:
             quarterly_earnings = process_earnings(
                 ticker.quarterly_earnings, symbol, "quarterly"
@@ -38,7 +63,8 @@ def fetch_yahoo_financials(symbol):
             logger.warning(
                 f"[YF] Could not fetch quarterly earnings for {symbol} from Yahoo: {e}"
             )
-            # Try to get earnings from ticker info instead
+            # Try to get earnings from ticker info instead - with timeout
+            timeout_handler()
             try:
                 info = ticker.info
                 if "trailingEps" in info:
@@ -61,6 +87,8 @@ def fetch_yahoo_financials(symbol):
                     f"[YF] Could not get EPS from ticker info for {symbol}: {inner_e}"
                 )
 
+        # Try to get annual earnings but handle failures gracefully
+        timeout_handler()
         try:
             annual_earnings = process_earnings(ticker.earnings, symbol, "annual")
         except Exception as e:
@@ -68,6 +96,7 @@ def fetch_yahoo_financials(symbol):
                 f"[YF] Could not fetch annual earnings for {symbol} from Yahoo: {e}"
             )
 
+        # Return all the data we could collect
         result = {
             "quarterly_financials": quarterly_financials,
             "annual_financials": annual_financials,
@@ -75,17 +104,57 @@ def fetch_yahoo_financials(symbol):
             "annual_earnings": annual_earnings,
         }
 
-        logger.info(f"[YF] Successfully fetched Yahoo Finance data for {symbol}")
-        return result
+        # Ensure we have at least some data
+        any_data = (
+            (quarterly_financials and len(quarterly_financials.get("data", [])) > 0)
+            or (annual_financials and len(annual_financials.get("data", [])) > 0)
+            or len(quarterly_earnings) > 0
+            or len(annual_earnings) > 0
+        )
+
+        if any_data:
+            logger.info(
+                f"[YF] Successfully fetched Yahoo Finance data for {symbol} in {time.time() - start_time:.2f}s"
+            )
+            return result
+        else:
+            logger.warning(f"[YF] No data found in Yahoo Finance API for {symbol}")
+            return {
+                "quarterly_financials": {"data": []},
+                "annual_financials": {"data": []},
+                "quarterly_earnings": [],
+                "annual_earnings": [],
+                "error": "No data available from Yahoo Finance API",
+            }
+
+    except TimeoutError as e:
+        logger.error(f"[YF] Timeout fetching Yahoo Finance data for {symbol}: {e}")
+        return {
+            "quarterly_financials": {"data": []},
+            "annual_financials": {"data": []},
+            "quarterly_earnings": [],
+            "annual_earnings": [],
+            "error": f"Timeout: {str(e)}",
+        }
+    except RateLimitExceeded as e:
+        logger.error(f"[YF] Rate limit exceeded for Yahoo Finance API - {symbol}: {e}")
+        return {
+            "quarterly_financials": {"data": []},
+            "annual_financials": {"data": []},
+            "quarterly_earnings": [],
+            "annual_earnings": [],
+            "error": f"Rate limited: {str(e)}",
+        }
     except Exception as e:
         logger.error(
             f"[YF] Error fetching Yahoo Finance data for {symbol}: {e}", exc_info=True
         )
         return {
-            "quarterly_financials": None,
-            "annual_financials": None,
+            "quarterly_financials": {"data": []},
+            "annual_financials": {"data": []},
             "quarterly_earnings": [],
             "annual_earnings": [],
+            "error": str(e),
         }
 
 
@@ -302,7 +371,7 @@ def process_earnings(earnings_df, symbol, report_type):
         return []
 
 
-@timed_cache(expire_seconds=3600 * 24)
+@adaptive_ttl_cache(base_ttl=3600 * 24, max_ttl=86400 * 2, error_ttl=3600)
 def compare_financial_sources(symbol, finnhub_data, yahoo_data):
     """
     Compare financial data from Finnhub and Yahoo Finance to identify discrepancies.

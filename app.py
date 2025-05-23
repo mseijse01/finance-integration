@@ -18,7 +18,7 @@ app = Flask(__name__)
 create_tables()
 
 app.register_blueprint(dashboard_bp)
-app.register_blueprint(news_bp)
+app.register_blueprint(news_
 
 
 # Add CLI commands for running ETL processes
