@@ -1,8 +1,8 @@
-certifi==2021.10.8
-charset-normalizer==2.0.4
+certifi==2023.11.17
+charset-normalizer==3.3.2
 click==8.1.8
 Flask==2.0.1
-idna==3.3
+idna==3.6
 itsdangerous==2.2.0
 Jinja2==3.1.6
 joblib==1.4.2
@@ -19,7 +19,7 @@ python-dateutil==2.9.0.post0
 python-dotenv==0.19.0
 pytz==2025.2
 regex==2024.11.6
-requests==2.28.2
+requests==2.31.0
 six==1.17.0
 SQLAlchemy==1.4.23
 tenacity==9.1.2
