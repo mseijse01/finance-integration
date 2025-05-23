@@ -10,7 +10,7 @@ WORKDIR /app
 
 # Install dependencies
 COPY requirements.txt /app/
-RUN pip install --upgrade pip && pip install -r requirements.txt
+RUN pip install --no-cache-dir --upgrade pip==23.0.1 && pip install --no-cache-dir -r requirements.txt
 
 # Copy project files into the container
 COPY . /app/
