@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
-Test script to verify Yahoo Finance integration for ACB.
+Test script to verify Yahoo Finance integration for SBUX.
+Ensures that our alternative data sources work correctly.
 """
 
 import sys
@@ -17,12 +18,12 @@ import services.earnings
 
 
 def test_yahoo_finance_integration():
-    """Test the complete Yahoo Finance integration for ACB."""
-    print("\n=== Testing Yahoo Finance Integration for ACB ===\n")
+    """Test the complete Yahoo Finance integration for SBUX."""
+    print("\n=== Testing Yahoo Finance Integration for SBUX ===\n")
 
     # Test direct Yahoo Finance API
     print("1. Direct Yahoo Finance API Call:")
-    yahoo_data = fetch_yahoo_financials("ACB")
+    yahoo_data = fetch_yahoo_financials("SBUX")
 
     # Check quarterly financials
     print("\n   Quarterly Financials:")
@@ -78,7 +79,7 @@ def test_yahoo_finance_integration():
     # Test through service adapter
     print("\n2. Through Service Adapter:")
     print("\n   Financials Service:")
-    financials = services.financials.fetch_financials("ACB", freq="quarterly")
+    financials = services.financials.fetch_financials("SBUX", freq="quarterly")
 
     if financials and financials.get("data"):
         print(f"   ✅ Financials found via service adapter")
@@ -88,7 +89,7 @@ def test_yahoo_finance_integration():
         print("   ❌ No financials found via service adapter")
 
     print("\n   Earnings Service:")
-    earnings = services.earnings.fetch_earnings("ACB")
+    earnings = services.earnings.fetch_earnings("SBUX")
 
     if earnings:
         print(f"   ✅ Earnings found via service adapter")

@@ -72,7 +72,8 @@ if __name__ == "__main__":
     # Ensure all tables exist
     create_tables()
 
-    symbols = ["CGC", "ACB", "CRON", "TLRY"]
+    # Define default symbols to process
+    symbols = ["SBUX", "KDP", "BROS", "FARM"]
 
     # Run pipelines in parallel
     run_pipelines_parallel(symbols)

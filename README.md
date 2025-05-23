@@ -1,6 +1,6 @@
 # 📈 Finance Integration Dashboard
 
-A data-driven Flask web application that tracks and visualizes stock prices, financial fundamentals, earnings, and sentiment analysis for cannabis-related companies.
+A data-driven Flask web application that tracks and visualizes stock prices, financial fundamentals, earnings, and sentiment analysis for coffee and beverage companies.
 
 This project showcases a robust ETL pipeline, API integrations (Alpha Vantage, Finnhub & Yahoo Finance), database handling with SQLAlchemy, and dynamic dashboards powered by Plotly — all structured for modularity and scalability.
 
@@ -177,7 +177,7 @@ finance-integration/
 - **Stock Price Chart**: Interactive visualization with adjustable timeframe
 - **Financial Metrics**: Revenue, net income, and earnings data
 - **News Sentiment**: Aggregated news with sentiment analysis
-- **Compare Stocks**: View multiple cannabis stocks side-by-side
+- **Compare Stocks**: View multiple coffee & beverage stocks side-by-side
 - **Data Source Attribution**: See which data source is being used for transparency
 - **Data Source Comparison**: Compare financial metrics between different data providers
 - **Maximum Data Coverage**: Multi-layered approach ensures data is available even for hard-to-cover stocks
@@ -198,9 +198,9 @@ finance-integration/
 
 ## 🧑‍💻 Development
 
-### Adding a New Stock
+### Adding New Stocks
 
-Edit `views/dashboard.py` and add the ticker to the `cannabis_stocks` list.
+Edit `views/dashboard.py` and add the ticker to the `coffee_stocks` list.
 
 ### Adding Hardcoded Financial Data
 
@@ -210,7 +210,7 @@ For stocks with limited API coverage, add hardcoded data to `services/hardcoded_
 
 Run ETL pipeline for a specific stock:
 ```bash
-flask run-etl --symbol=CGC
+flask run-etl --symbol=BROS
 ```
 
 ## 📚 Documentation

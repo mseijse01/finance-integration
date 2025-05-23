@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document describes the integration of Yahoo Finance as a secondary data source for financial and earnings data in the Finance Integration Dashboard. The integration addresses issues with missing financial data for certain stocks like Aurora Cannabis (ACB) that may not be well-covered by our primary data provider, Finnhub.
+This document explains how we've integrated Yahoo Finance as a secondary data source to provide more comprehensive financial data for certain stocks like Starbucks (SBUX) that may not be well-covered by our primary data provider, Finnhub.
 
 ## Architecture
 
@@ -64,7 +64,7 @@ The integration handles several error scenarios:
 1. **No Data Available**: For stocks where neither Finnhub nor Yahoo Finance have data, our hardcoded data is used with clear attribution
 2. **API Rate Limits**: Both APIs have rate limits, which are managed through caching and graceful fallbacks
 3. **Parse Errors**: The code handles various data format issues that may occur with either source
-4. **Special Case Handling**: For specific symbols like ACB with known issues, custom messages are shown
+4. **Special Case Handling**: For specific symbols like SBUX with known issues, custom messages are shown
 
 ## Data Sources & Fallback Pattern
 

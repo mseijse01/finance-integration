@@ -45,8 +45,8 @@ def load_stock_data_background():
         get_earnings_from_db,
     )
 
-    cannabis_stocks = ["CGC", "ACB", "CRON", "TLRY"]
-    for symbol in cannabis_stocks:
+    coffee_stocks = ["SBUX", "KDP", "BROS", "FARM"]
+    for symbol in coffee_stocks:
         try:
             get_news_from_db(symbol)
             get_financials_from_db(symbol)
@@ -291,7 +291,7 @@ def downsample_data(records, target_points=100):
 @dashboard_bp.route("/")
 def dashboard():
     # Use cached DB queries and API calls
-    cannabis_stocks = ["CGC", "ACB", "CRON", "TLRY"]
+    coffee_stocks = ["SBUX", "KDP", "BROS", "FARM"]
 
     # Create figure with a subplot for the price chart
     fig = make_subplots(
@@ -303,20 +303,20 @@ def dashboard():
         subplot_titles=("Price History", "Trading Volume"),
     )
 
-    # Colors for different stocks
+    # Colors for different stocks - Coffee themed professional palette
     colors = {
-        "CGC": "#198754",  # Green
-        "ACB": "#0d6efd",  # Blue
-        "CRON": "#dc3545",  # Red
-        "TLRY": "#fd7e14",  # Orange
+        "SBUX": "#00704A",  # Starbucks Green
+        "KDP": "#1f4e79",  # Professional Blue
+        "BROS": "#7D5A50",  # Sophisticated minimalist brown
+        "FARM": "#B8860B",  # Dark goldenrod
     }
 
     # Default visibility for stocks (show only the first one by default to speed up initial rendering)
     default_visibility = {
-        "CGC": True,  # Only show the first stock's price trace by default
-        "ACB": "legendonly",
-        "CRON": "legendonly",
-        "TLRY": "legendonly",
+        "SBUX": True,  # Only show the first stock's price trace by default
+        "KDP": "legendonly",
+        "BROS": "legendonly",
+        "FARM": "legendonly",
     }
 
     # Get display timeframe from query parameter, default to 6 months
@@ -621,39 +621,39 @@ def dashboard():
                     if "report" in report_data:
                         report = report_data.get("report", {})
 
-                        if revenue == "N/A":
-                            revenue = extract_financial_metric(
-                                report,
-                                [
-                                    "Revenue",
-                                    "Total Revenue",
-                                    "totalRevenue",
-                                    "revenues",
-                                ],
-                            )
+                    if revenue == "N/A":
+                        revenue = extract_financial_metric(
+                            report,
+                            [
+                                "Revenue",
+                                "Total Revenue",
+                                "totalRevenue",
+                                "revenues",
+                            ],
+                        )
 
-                        if net_income == "N/A":
-                            net_income = extract_financial_metric(
-                                report, ["Net Income", "netIncome", "net_income"]
-                            )
+                    if net_income == "N/A":
+                        net_income = extract_financial_metric(
+                            report, ["Net Income", "netIncome", "net_income"]
+                        )
 
-                        # Get quarter/year information
-                        year = report_data.get("year", "")
-                        quarter = report_data.get("quarter", "")
-                        if year and quarter:
-                            report_period = f"Q{quarter} {year}"
-                        elif year:
-                            report_period = f"{year}"
+                    # Get quarter/year information
+                    year = report_data.get("year", "")
+                    quarter = report_data.get("quarter", "")
+                    if year and quarter:
+                        report_period = f"Q{quarter} {year}"
+                    elif year:
+                        report_period = f"{year}"
                 except Exception as e:
                     logger.warning(f"Failed to extract metrics from Yahoo Finance: {e}")
         else:
             # For stocks with no financial data from any source
             data_source = "No Data Available"
             report_period = "No data found in Finnhub or Yahoo Finance"
-            # Try to handle specific stocks (like ACB) with known financial issues
-            if symbol == "ACB":
+            # Try to handle specific stocks (like SBUX) with known financial issues
+            if symbol == "SBUX":
                 data_source = "No Data Available - Use Alternative Source"
-                report_period = "Aurora Cannabis data not available in our sources"
+                report_period = "Starbucks data not available in our sources"
                 revenue = "See Investor Relations"
                 net_income = "See Investor Relations"
 
@@ -870,7 +870,7 @@ def dashboard():
 
     # Process each stock in parallel
     threads = []
-    for symbol in cannabis_stocks:
+    for symbol in coffee_stocks:
         t = threading.Thread(target=process_stock, args=(symbol,))
         threads.append(t)
         t.start()
@@ -908,7 +908,7 @@ def dashboard():
                 ]
             ),
             bgcolor="white",
-            activecolor="#0d6efd",
+            activecolor="#000000",  # Black to match period buttons
         ),
         row=1,
         col=1,

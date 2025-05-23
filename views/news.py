@@ -6,7 +6,9 @@ news_bp = Blueprint("news", __name__)
 
 @news_bp.route("/news")
 def news():
-    stocks = ["CGC", "ACB", "CRON", "TLRY"]
+    """News page showing sentiment analysis for all stocks"""
+    # Define stocks to analyze
+    stocks = ["SBUX", "KDP", "BROS", "FARM"]
     news_sections = {}
     for symbol in stocks:
         articles = fetch_company_news(symbol)

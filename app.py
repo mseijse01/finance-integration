@@ -18,14 +18,14 @@ app = Flask(__name__)
 create_tables()
 
 app.register_blueprint(dashboard_bp)
-app.register_blueprint(news_
+app.register_blueprint(news_bp)
 
 
 # Add CLI commands for running ETL processes
 @app.cli.command("run-etl")
 @click.option(
     "--symbol",
-    help="Specific stock symbol to process (e.g., CGC). If not provided, all default symbols will be processed.",
+    help="Specific stock symbol to process (e.g., SBUX). If not provided, all default symbols will be processed.",
 )
 def run_etl_command(symbol=None):
     """Run the ETL pipeline to update the database with latest financial data."""
@@ -38,7 +38,7 @@ def run_etl_command(symbol=None):
             click.echo(f"ETL pipeline had errors for {symbol}. Check logs for details.")
     else:
         click.echo("Running ETL pipeline for all default symbols")
-        symbols = ["CGC", "ACB", "CRON", "TLRY"]
+        symbols = ["SBUX", "KDP", "BROS", "FARM"]
         results = run_pipelines_parallel(symbols)
 
         # Report results
