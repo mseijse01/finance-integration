@@ -32,8 +32,13 @@ jobs:
     - name: Install dependencies with conflict resolution
       run: |
         python -m pip install --upgrade pip==23.0.1
-        # Install the exact versions to avoid dependency conflicts
+        echo "Installing requirements.txt..."
         pip install -r requirements.txt
+        echo "✅ Dependencies installed successfully"
+        echo "Versions check:"
+        python -c "import black; print(f'Black: {black.__version__}')"
+        python -c "import click; print(f'Click: {click.__version__}')"
+        python -c "import flake8; print(f'Flake8: {flake8.__version__}')"
     
     - name: Setup NLTK data (with SSL fix)
       run: |
@@ -57,18 +62,23 @@ jobs:
     
     - name: Code formatting check with Black
       run: |
-        black --check --diff .
-      continue-on-error: true  # Don't fail the build, just show the diff
+        echo "Running Black code formatting check..."
+        black --check --diff . || (echo "❌ Code formatting issues found. Run 'black .' locally to fix." && exit 1)
+        echo "✅ Code formatting passed"
+      continue-on-error: false  # Fail if formatting is wrong
     
     - name: Lint with flake8
       run: |
+        echo "Running flake8 linting..."
         # Stop the build if there are Python syntax errors or undefined names
         flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
         # Treat all other issues as warnings
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=88 --statistics
+        echo "✅ Flake8 linting completed"
     
     - name: Test constants and basic functionality
       run: |
+        echo "Testing core functionality..."
         # Test our new constants
         python -c "from utils.constants import CacheTTL; print('✅ Constants imported successfully')"
         
@@ -98,6 +108,7 @@ jobs:
             print(f'⚠️  Service adapter import issue: {e}')
         "
         
+        echo "Running tests..."
         # Only run tests that don't depend on the service layer migration
         python -m pytest tests/test_constants.py -v || echo "Constants tests had issues but continuing..."
         

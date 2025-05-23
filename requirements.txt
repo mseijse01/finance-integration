@@ -39,8 +39,8 @@ Flask-Migrate==3.1.0
 alembic==1.7.3
 Flask-SQLAlchemy==2.5.1
 Flask-Cors==3.0.10
-black==21.9b0
-flake8==3.9.2
+black==23.3.0
+flake8==6.0.0
 isort==5.9.3
 pre-commit==2.15.0
 yfinance==0.2.35
