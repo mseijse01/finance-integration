@@ -22,14 +22,15 @@ from utils.cache import timed_cache, clear_cache, get_cache_stats
 import numpy as np
 from sqlalchemy import desc
 import time
-from services.financials import fetch_financials
+
+# Use service adapter for graceful migration to BaseDataService
+from services.service_adapter import fetch_financials, fetch_earnings
 from services.alternative_financials import (
     fetch_yahoo_financials,
     compare_financial_sources,
 )
 import os
 import json
-import services.earnings
 
 dashboard_bp = Blueprint("dashboard", __name__)
 
@@ -473,19 +474,15 @@ def dashboard():
     # Helper function to process financials and earnings data
     def process_financials(symbol):
         # First try to get Finnhub data through our standard pipeline
-        finnhub_financials = services.financials.fetch_financials(
-            symbol, freq="quarterly"
-        )
+        finnhub_financials = fetch_financials(symbol, freq="quarterly")
         if not finnhub_financials or not finnhub_financials.get("data"):
-            finnhub_financials = services.financials.fetch_financials(
-                symbol, freq="annual"
-            )
+            finnhub_financials = fetch_financials(symbol, freq="annual")
 
         # Get Yahoo Finance data for comparison
         yahoo_data = fetch_yahoo_financials(symbol)
 
         # Get earnings data
-        earnings = services.earnings.fetch_earnings(symbol)
+        earnings = fetch_earnings(symbol)
 
         # Process financials
         revenue = net_income = "N/A"
