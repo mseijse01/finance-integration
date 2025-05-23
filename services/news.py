@@ -9,6 +9,10 @@ from sqlalchemy import desc
 from datetime import datetime, timedelta
 from etl.news_etl import run_news_etl_pipeline
 import ssl
+from flask import Blueprint, render_template
+from utils.constants import CacheTTL
+import concurrent.futures
+import threading
 
 # Fix SSL certificate issues for NLTK downloads
 try:
@@ -22,8 +26,17 @@ else:
 nltk.download("vader_lexicon", quiet=True)
 sia = SentimentIntensityAnalyzer()
 
+news_bp = Blueprint("news", __name__)
 
-@timed_cache(expire_seconds=3600)  # Cache news for 1 hour
+# Global thread pool for parallel ETL operations
+ETL_EXECUTOR = concurrent.futures.ThreadPoolExecutor(max_workers=2)
+ETL_TIMEOUT = 10  # seconds
+
+# Thread-local storage for ETL operations in progress
+_etl_operations = threading.local()
+
+
+@timed_cache(expire_seconds=CacheTTL.NEWS_CACHE)  # Use constant instead of magic number
 def fetch_company_news(symbol, days=30):
     """
     Fetch recent news articles for a given stock symbol from the database.
