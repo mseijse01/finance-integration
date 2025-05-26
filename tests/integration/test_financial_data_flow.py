@@ -14,9 +14,9 @@ from unittest import mock
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from models.db_models import (Base, Earnings, FinancialReport, NewsArticle,
-                              StockPrice)
+from models.db_models import Base, Earnings, FinancialReport, NewsArticle, StockPrice
 from services.alternative_financials import fetch_yahoo_financials
+
 # Import the services through the adapter for graceful migration
 from services.service_adapter import fetch_earnings, fetch_financials
 from utils.cache import clear_cache

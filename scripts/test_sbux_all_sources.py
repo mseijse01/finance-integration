@@ -18,13 +18,14 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 
 from sqlalchemy import desc
 
-from models.db_models import (Earnings, FinancialReport, SessionLocal,
-                              create_tables)
+from models.db_models import Earnings, FinancialReport, SessionLocal, create_tables
 from services.alternative_financials import fetch_yahoo_financials
 from services.earnings import fetch_earnings
 from services.financials import fetch_financials
-from services.hardcoded_financials import (get_hardcoded_earnings,
-                                           get_hardcoded_financials)
+from services.hardcoded_financials import (
+    get_hardcoded_earnings,
+    get_hardcoded_financials,
+)
 from utils.logging_config import logger
 
 

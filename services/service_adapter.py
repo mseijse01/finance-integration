@@ -7,6 +7,7 @@ import functools
 from typing import Any, Callable, Dict, List, Union
 
 from services.earnings import fetch_earnings as old_fetch_earnings
+
 # Import both old and new service implementations
 from services.financials import fetch_financials as old_fetch_financials
 from services.refactored_earnings import EarningsService

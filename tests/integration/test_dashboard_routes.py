@@ -15,8 +15,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from app import app
-from models.db_models import (Base, Earnings, FinancialReport, NewsArticle,
-                              StockPrice)
+from models.db_models import Base, Earnings, FinancialReport, NewsArticle, StockPrice
 from utils.cache import clear_cache
 
 

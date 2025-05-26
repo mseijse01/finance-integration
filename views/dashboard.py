@@ -17,10 +17,18 @@ from sqlalchemy import desc
 
 from etl.extraction import fetch_stock_data
 from etl.transformation import transform_stock_data
-from models.db_models import (Earnings, FinancialReport, NewsArticle,
-                              SessionLocal, StockPrice)
-from services.alternative_financials import (compare_financial_sources,
-                                             fetch_yahoo_financials)
+from models.db_models import (
+    Earnings,
+    FinancialReport,
+    NewsArticle,
+    SessionLocal,
+    StockPrice,
+)
+from services.alternative_financials import (
+    compare_financial_sources,
+    fetch_yahoo_financials,
+)
+
 # Use service adapter for graceful migration to BaseDataService
 from services.service_adapter import fetch_earnings, fetch_financials
 from utils.cache import clear_cache, get_cache_stats, timed_cache
@@ -34,8 +42,11 @@ def load_stock_data_background():
     """Load all stock data in the background to warm up cache"""
     # We need to import these functions inside the thread to avoid circular imports
     # and ensure the functions are defined before being called
-    from views.dashboard import (get_earnings_from_db, get_financials_from_db,
-                                 get_news_from_db)
+    from views.dashboard import (
+        get_earnings_from_db,
+        get_financials_from_db,
+        get_news_from_db,
+    )
 
     coffee_stocks = ["SBUX", "KDP", "BROS", "FARM"]
     for symbol in coffee_stocks:
