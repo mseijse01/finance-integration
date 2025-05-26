@@ -10,8 +10,10 @@ from services.earnings import fetch_earnings as old_fetch_earnings
 
 # Import both old and new service implementations
 from services.financials import fetch_financials as old_fetch_financials
+from services.news import fetch_company_news as old_fetch_news
 from services.refactored_earnings import EarningsService
 from services.refactored_financials import FinancialsService
+from services.refactored_news import NewsService
 from utils.logging_config import logger
 
 # Feature toggle to enable/disable refactored services
@@ -67,6 +69,8 @@ fetch_financials = with_fallback(
 )
 
 fetch_earnings = with_fallback(old_fetch_earnings, EarningsService.fetch_earnings)
+
+fetch_news = with_fallback(old_fetch_news, NewsService.fetch_news)
 
 
 # Function to completely switch to refactored implementations
