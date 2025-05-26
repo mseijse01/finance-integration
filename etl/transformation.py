@@ -1,5 +1,7 @@
-import polars as pl
 from datetime import datetime
+
+import polars as pl
+
 from utils.logging_config import logger
 
 

@@ -5,6 +5,7 @@ Data is sourced from public financial reports.
 """
 
 from datetime import datetime
+
 from utils.logging_config import logger
 
 

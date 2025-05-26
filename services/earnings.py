@@ -1,16 +1,17 @@
-import requests
 import concurrent.futures
-from config import Config
-from utils.logging_config import logger
-from utils.cache import adaptive_ttl_cache, rate_limited_api
-from models.db_models import SessionLocal, Earnings
-from sqlalchemy import desc
-from datetime import datetime, timedelta
 import threading
+from datetime import datetime, timedelta
+
+import requests
+from sqlalchemy import desc
+
+from config import Config
 from etl.earnings_etl import run_earnings_etl_pipeline
+from models.db_models import Earnings, SessionLocal
 from services.alternative_financials import fetch_yahoo_financials
 from services.hardcoded_financials import get_hardcoded_earnings
-
+from utils.cache import adaptive_ttl_cache, rate_limited_api
+from utils.logging_config import logger
 
 # Global thread pool for parallel ETL operations
 ETL_EXECUTOR = concurrent.futures.ThreadPoolExecutor(max_workers=4)

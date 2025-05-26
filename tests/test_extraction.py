@@ -1,7 +1,9 @@
+from unittest.mock import Mock, patch
+
 import pytest
-from unittest.mock import patch, Mock
-from etl.extraction import fetch_stock_data
 import requests
+
+from etl.extraction import fetch_stock_data
 
 
 @pytest.fixture

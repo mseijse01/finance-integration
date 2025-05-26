@@ -3,12 +3,14 @@ Base service class providing common functionality for data services
 """
 
 import concurrent.futures
-from typing import Any, Dict, List, Optional, Type, TypeVar, Generic, Callable
-from sqlalchemy.orm import Session
-from datetime import datetime
 import threading
-from utils.logging_config import logger
+from datetime import datetime
+from typing import Any, Callable, Dict, Generic, List, Optional, Type, TypeVar
+
+from sqlalchemy.orm import Session
+
 from utils.cache import adaptive_ttl_cache
+from utils.logging_config import logger
 
 # Global thread pool for parallel ETL operations
 ETL_EXECUTOR = concurrent.futures.ThreadPoolExecutor(max_workers=4)

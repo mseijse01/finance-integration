@@ -1,12 +1,8 @@
-import unittest
 import time
-from utils.cache import (
-    adaptive_ttl_cache,
-    rate_limited_api,
-    clear_cache,
-    clear_api_rate_limits,
-    RateLimitExceeded,
-)
+import unittest
+
+from utils.cache import (RateLimitExceeded, adaptive_ttl_cache,
+                         clear_api_rate_limits, clear_cache, rate_limited_api)
 
 
 class TestCacheOptimization(unittest.TestCase):

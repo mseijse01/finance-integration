@@ -3,16 +3,15 @@ Service adapter module that provides backwards compatibility
 for refactored services with the existing view code.
 """
 
-from typing import Dict, List, Any, Union, Callable
 import functools
+from typing import Any, Callable, Dict, List, Union
 
-from utils.logging_config import logger
-
+from services.earnings import fetch_earnings as old_fetch_earnings
 # Import both old and new service implementations
 from services.financials import fetch_financials as old_fetch_financials
-from services.refactored_financials import FinancialsService
-from services.earnings import fetch_earnings as old_fetch_earnings
 from services.refactored_earnings import EarningsService
+from services.refactored_financials import FinancialsService
+from utils.logging_config import logger
 
 # Feature toggle to enable/disable refactored services
 USE_REFACTORED_SERVICES = True

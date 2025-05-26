@@ -1,7 +1,7 @@
 certifi==2023.11.17
 charset-normalizer==3.3.2
 click==8.1.8
-Flask==2.0.1
+Flask==2.2.2
 idna==3.6
 itsdangerous==2.2.0
 Jinja2==3.1.6
@@ -10,8 +10,8 @@ MarkupSafe==3.0.2
 nltk==3.6.5
 numpy==1.24.3
 packaging==23.1
-pandas==1.5.3
-plotly==5.5.0
+pandas==2.2.3
+plotly==5.11.0
 polars==0.17.11
 psycopg2-binary==2.9.1
 pyarrow==19.0.1
@@ -21,7 +21,7 @@ pytz==2025.2
 regex==2024.11.6
 requests==2.31.0
 six==1.17.0
-SQLAlchemy==1.4.23
+SQLAlchemy==1.4.46
 tenacity==9.1.2
 tqdm==4.67.1
 tzdata==2025.2

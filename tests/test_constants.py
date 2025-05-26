@@ -3,6 +3,7 @@ Tests for utils.constants module
 """
 
 import pytest
+
 from utils.constants import CacheTTL
 
 

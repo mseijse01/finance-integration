@@ -8,24 +8,24 @@ This will walk through each layer in our data fetch strategy:
 4. Hardcoded data
 """
 
-import sys
-import os
 import json
+import os
+import sys
 from datetime import datetime
 
 # Add parent directory to path so we can import from the application modules
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from utils.logging_config import logger
-from services.financials import fetch_financials
-from services.earnings import fetch_earnings
-from services.alternative_financials import fetch_yahoo_financials
-from services.hardcoded_financials import (
-    get_hardcoded_financials,
-    get_hardcoded_earnings,
-)
-from models.db_models import SessionLocal, FinancialReport, Earnings, create_tables
 from sqlalchemy import desc
+
+from models.db_models import (Earnings, FinancialReport, SessionLocal,
+                              create_tables)
+from services.alternative_financials import fetch_yahoo_financials
+from services.earnings import fetch_earnings
+from services.financials import fetch_financials
+from services.hardcoded_financials import (get_hardcoded_earnings,
+                                           get_hardcoded_financials)
+from utils.logging_config import logger
 
 
 def test_sbux_data_sources():

@@ -1,4 +1,5 @@
 import requests
+
 from config import Config
 from utils.logging_config import logger
 

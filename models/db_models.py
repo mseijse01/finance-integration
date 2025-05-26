@@ -1,21 +1,23 @@
+from datetime import datetime
+
 from sqlalchemy import (
-    create_engine,
-    Column,
-    Integer,
-    String,
-    Float,
-    Date,
-    DateTime,
-    Text,
     JSON,
     Boolean,
+    Column,
+    Date,
+    DateTime,
+    Float,
     ForeignKey,
+    Integer,
+    String,
+    Text,
+    create_engine,
 )
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.sql import func
+
 from config import Config
-from datetime import datetime
 
 Base = declarative_base()
 engine = create_engine(Config.DATABASE_URL)

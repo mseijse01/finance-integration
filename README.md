@@ -1,8 +1,8 @@
 # 📈 Finance Integration Dashboard
 
-> **A sophisticated Flask application for financial data analysis and visualization**
+> **A comprehensive Flask application for financial data analysis and visualization**
 
-Track and visualize stock prices, financial fundamentals, earnings, and sentiment analysis for coffee and beverage companies with data pipelines, intelligent caching, and beautiful interactive dashboards.
+Track and visualize stock prices, financial fundamentals, earnings, and sentiment analysis for coffee and beverage companies. Features robust data pipelines, intelligent caching, and beautiful interactive dashboards built with modern web technologies.
 
 [![Python](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://python.org)
 [![Flask](https://img.shields.io/badge/Flask-2.0%2B-green.svg)](https://flask.palletsprojects.com/)
@@ -13,99 +13,41 @@ Track and visualize stock prices, financial fundamentals, earnings, and sentimen
 
 ## ✨ **Key Features**
 
-### 📊 **Financial Data Intelligence**
 - **Multi-source financial data** with automatic fallbacks (Finnhub → Yahoo Finance → Hardcoded)
-- **Real-time stock price tracking** with technical indicators (moving averages, volatility)
-- **Comprehensive earnings analysis** with surprise metrics and beat/miss tracking
-- **Financial fundamentals** across quarterly and annual reporting periods
-
-### 🧠 **Advanced Analytics**
+- **Real-time stock tracking** with technical indicators and earnings analysis
 - **Sentiment analysis** of financial news using NLTK
-- **Data source comparison** for transparency and validation
-- **Interactive visualizations** powered by Plotly
-- **CSV data export** for external analysis
-
-### 🏗️ **Architecture**
-- **Intelligent caching** with adaptive TTL and rate limiting
-- **Resilient ETL pipelines** with parallel processing and error recovery
-- **Background data refresh** for optimal performance
-- **Thread-safe operations** with timeout handling
-
-### 🎨 **User Experience**
-- **Responsive design** optimized for desktop and mobile
-- **Real-time dashboard** with auto-refresh capabilities
-- **Multi-stock comparison** views
-- **Data source attribution** for full transparency
+- **Interactive Plotly dashboards** with responsive design
+- **Smart caching** and background ETL for optimal performance
+- **CSV export** and multi-stock comparison views
 
 ---
 
-## 🏗️ **Architecture Overview**
+## 🏗️ **Architecture**
 
-### **Clean Architecture Pattern**
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                        PRESENTATION LAYER                       │
-│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐ │
-│  │   Dashboard     │  │   News Views    │  │   API Routes    │ │
-│  │   (Plotly)      │  │   (Sentiment)   │  │   (JSON/CSV)    │ │
-│  └─────────────────┘  └─────────────────┘  └─────────────────┘ │
-└─────────────────────────────────────────────────────────────────┘
-                                │
-┌─────────────────────────────────────────────────────────────────┐
-│                       SERVICE LAYER                            │
-│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐ │
-│  │ Service Adapter │  │ BaseDataService │  │ Legacy Services │ │
-│  │ (Migration)     │  │ (New Pattern)   │  │ (Transitional)  │ │
-│  └─────────────────┘  └─────────────────┘  └─────────────────┘ │
-└─────────────────────────────────────────────────────────────────┘
-                                │
-┌─────────────────────────────────────────────────────────────────┐
-│                         ETL LAYER                               │
-│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐ │
-│  │   Extraction    │  │ Transformation  │  │    Loading      │ │
-│  │ (Multi-source)  │  │ (Validation)    │  │ (Database)      │ │
-│  └─────────────────┘  └─────────────────┘  └─────────────────┘ │
-└─────────────────────────────────────────────────────────────────┘
-                                │
-┌─────────────────────────────────────────────────────────────────┐
-│                       DATA LAYER                               │
-│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐ │
-│  │   PostgreSQL    │  │   Caching       │  │   External      │ │
-│  │   (Primary)     │  │   (Redis-like)  │  │   APIs          │ │
-│  └─────────────────┘  └─────────────────┘  └─────────────────┘ │
-└─────────────────────────────────────────────────────────────────┘
+┌─────────────┐    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐
+│    User     │───▶│   Flask     │───▶│  Services   │───▶│  Response   │
+│  (Browser)  │    │   Routes    │    │   Layer     │    │   (JSON)    │
+└─────────────┘    └─────────────┘    └─────────────┘    └─────────────┘
+                                             │
+                                             ▼
+                   ┌─────────────────────────────────────────────────┐
+                   │              Data Sources                       │
+                   │  ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌─────┐ │
+                   │  │Database │  │Finnhub  │  │ Yahoo   │  │Hard │ │
+                   │  │(Cache)  │  │   API   │  │Finance  │  │coded│ │
+                   │  │  [1]    │  │   [2]   │  │   [3]   │  │ [4] │ │
+                   │  └─────────┘  └─────────┘  └─────────┘  └─────┘ │
+                   └─────────────────────────────────────────────────┘
 ```
 
-### **Intelligent Data Flow with Multi-Source Fallbacks**
+### **Data Source Priority**
+1. **Database Cache** - Return cached data instantly if available
+2. **Finnhub API** - Primary source for fresh financial data
+3. **Yahoo Finance** - Backup when Finnhub is unavailable
+4. **Hardcoded Data** - Fallback for stocks with limited API coverage
 
-```mermaid
-graph TD
-    A[User Request] --> B[Service Adapter]
-    B --> C{Database Check}
-    
-    C -->|Data Found| D[Return Cached Data]
-    C -->|Data Missing/Stale| E[Trigger ETL Pipeline]
-    
-    E --> F{Finnhub API}
-    F -->|Success| G[Transform & Store]
-    F -->|Failed| H{Yahoo Finance API}
-    
-    H -->|Success| I[Transform & Store]
-    H -->|Failed| J{Hardcoded Data}
-    
-    J -->|Available| K[Return Fallback Data]
-    J -->|Not Available| L[Return Error Message]
-    
-    G --> M[Update Cache]
-    I --> M
-    M --> N[Return Fresh Data]
-    
-    style A fill:#e1f5fe
-    style D fill:#c8e6c9
-    style N fill:#c8e6c9
-    style K fill:#fff3e0
-    style L fill:#ffcdd2
-```
+The ETL pipeline runs in the background to keep the database fresh, ensuring fast response times.
 
 ---
 
@@ -118,39 +60,22 @@ graph TD
 
 ### **Installation**
 
-1. **Clone and setup**
-   ```bash
-   git clone https://github.com/mseijse01/finance-integration.git
-   cd finance-integration
-   python -m venv venv
-   source venv/bin/activate  # Windows: venv\Scripts\activate
-   ```
+```bash
+git clone https://github.com/mseijse01/finance-integration.git
+cd finance-integration
+python -m venv venv && source venv/bin/activate
+pip install -r requirements.txt
+python utils/setup_nltk.py
 
-2. **Install dependencies**
-   ```bash
-   pip install -r requirements.txt
-   python utils/setup_nltk.py  # Setup sentiment analysis
-   ```
+# Configure environment
+cp .env.example .env
+# Edit .env with your API keys and database URL
 
-3. **Configure environment**
-   ```bash
-   cp .env.example .env
-   # Edit .env with your API keys and database URL
-   export FINNHUB_API_KEY=your_finnhub_key
-   export ALPHA_VANTAGE_API_KEY=your_alpha_vantage_key
-   export DATABASE_URL=postgresql://user:pass@localhost:5432/finance_db
-   ```
-
-4. **Initialize data**
-   ```bash
-   flask run-etl  # Populate database with initial data
-   ```
-
-5. **Launch application**
-   ```bash
-   python app.py
-   # Access dashboard at http://localhost:5000
-   ```
+# Initialize and run
+flask run-etl
+python app.py
+# Access dashboard at http://localhost:5000
+```
 
 ---
 
@@ -158,88 +83,30 @@ graph TD
 
 ```
 finance-integration/
-├── 🚀 app.py                          # Flask application entry point
-├── ⚙️  config.py                       # Configuration management
-├── 📋 requirements.txt                 # Python dependencies
-├── 🔄 run_etl.py                      # ETL pipeline orchestrator
-│
-├── 📊 etl/                            # Data pipeline modules
-│   ├── extraction.py                  # Multi-source data extraction
-│   ├── transformation.py              # Data cleaning & validation
-│   ├── loading.py                     # Database persistence
-│   ├── news_etl.py                    # News & sentiment pipeline
-│   ├── financials_etl.py              # Financial reports pipeline
-│   └── earnings_etl.py                # Earnings data pipeline
-│
-├── 🗄️  models/                        # Data models & database
-│   └── db_models.py                   # SQLAlchemy ORM models
-│
-├── 🔧 services/                       # Service layer (REFACTORING)
-│   ├── 🆕 base_service.py             # New: Base service pattern
-│   ├── 🆕 service_adapter.py          # New: Migration adapter
-│   ├── 🆕 refactored_financials.py    # New: Financials service
-│   ├── 🆕 refactored_earnings.py      # New: Earnings service
-│   ├── 🔄 financials.py               # Legacy: Being migrated
-│   ├── 🔄 earnings.py                 # Legacy: Being migrated  
-│   ├── 🔄 news.py                     # Legacy: Migration pending
-│   ├── 🌐 alternative_financials.py   # Yahoo Finance integration
-│   └── 💾 hardcoded_financials.py     # Fallback data source
-│
-├── 🎨 views/                          # Web interface
-│   ├── dashboard.py                   # Main dashboard & charts
-│   └── news.py                        # News sentiment views
-│
-├── 🛠️  utils/                         # Utility modules
-│   ├── constants.py                   # Application constants
-│   ├── cache.py                       # Intelligent caching system
-│   ├── setup_nltk.py                  # NLTK configuration
-│   └── logging_config.py              # Logging setup
-│
-├── 🧪 tests/                          # Test suite
-│   ├── unit/                          # Unit tests
-│   ├── integration/                   # Integration tests
-│   └── test_*.py                      # Test modules
-│
-├── 🎨 static/                         # CSS, JS, images
-├── 📄 templates/                      # Jinja2 HTML templates
-└── 📚 documentation/                  # Project documentation
+├── app.py                    # Flask application entry point
+├── config.py                 # Configuration management
+├── run_etl.py               # ETL pipeline orchestrator
+├── etl/                     # Data pipeline modules
+├── models/db_models.py      # SQLAlchemy ORM models
+├── services/                # Service layer (financials, earnings, news)
+├── views/                   # Web interface (dashboard, news)
+├── utils/                   # Utility modules (cache, constants, logging)
+├── tests/                   # Test suite (unit & integration)
+├── static/                  # CSS, JS, images
+└── templates/               # Jinja2 HTML templates
 ```
-
-### 🔄 **Service Architecture (During Migration)**
-
-| Layer | Purpose | Status |
-|-------|---------|--------|
-| **Service Adapters** | Seamless old/new service integration | ✅ Production Ready |
-| **BaseDataService** | Common patterns for new services | ✅ Foundation Complete |
-| **Refactored Services** | New modular service implementations | 🔄 In Progress |
-| **Legacy Services** | Original services (backward compatible) | 🔄 Being Phased Out |
 
 ---
 
 ## 🎯 **Supported Stocks**
 
-Currently tracking **coffee and beverage industry leaders**:
+**Coffee & Beverage Companies:** SBUX, KDP, BROS, FARM
 
-| Symbol | Company | Market Cap | Data Sources |
-|--------|---------|------------|--------------|
-| **SBUX** | Starbucks Corporation | Large Cap | Finnhub + Yahoo + Hardcoded |
-| **KDP** | Keurig Dr Pepper | Large Cap | Finnhub + Yahoo |
-| **BROS** | Dutch Bros Inc. | Mid Cap | Yahoo + Hardcoded |
-| **FARM** | Farmer Bros. Co. | Small Cap | Hardcoded + Manual |
-
-*Easy to extend - add new symbols to `coffee_stocks` list in `views/dashboard.py`*
+*Add new symbols to `coffee_stocks` list in `views/dashboard.py`*
 
 ---
 
-## 🧑‍💻 **Development Guide**
-
-### **🚧 Working During Refactoring**
-
-**Important Guidelines:**
-1. **Use service adapters** for data access (handles both architectures)
-2. **New features** should implement `BaseDataService` pattern
-3. **Avoid modifying legacy services** (scheduled for removal)
-4. **Some tests temporarily disabled** during migration
+## 🧑‍💻 **Development**
 
 ### **Adding New Stocks**
 ```python
@@ -247,32 +114,7 @@ Currently tracking **coffee and beverage industry leaders**:
 coffee_stocks = ["SBUX", "KDP", "BROS", "FARM", "YOUR_SYMBOL"]
 ```
 
-### **Creating New Services (Recommended Pattern)**
-```python
-from services.base_service import BaseDataService
-
-class MyDataService(BaseDataService):
-    model_class = MyModel
-    data_type = "my_data"
-    cache_ttl = 3600
-    
-    @classmethod
-    def _query_database(cls, session, symbol, **kwargs):
-        # Database query implementation
-        return session.query(cls.model_class).filter_by(symbol=symbol).all()
-    
-    @classmethod
-    def _run_etl_pipeline(cls, symbol):
-        # ETL trigger implementation
-        run_my_etl_pipeline(symbol)
-    
-    @classmethod
-    def _try_alternative_sources(cls, symbol, **kwargs):
-        # Fallback data sources
-        return fetch_alternative_data(symbol)
-```
-
-### **Running ETL for Specific Stocks**
+### **Running ETL**
 ```bash
 flask run-etl --symbol=SBUX    # Single stock
 flask run-etl                  # All stocks
@@ -280,73 +122,33 @@ flask run-etl                  # All stocks
 
 ---
 
-## 🚀 **Production Deployment**
+## 🚀 **Deployment**
 
-### **Environment Setup**
-```bash
-# Production database
-export DATABASE_URL=postgresql://user:pass@prod-host:5432/finance_db
-
-# API keys
-export FINNHUB_API_KEY=your_production_key
-export ALPHA_VANTAGE_API_KEY=your_production_key
-
-# Optional: Redis for distributed caching
-export REDIS_URL=redis://localhost:6379
-```
-
-### **Gunicorn Deployment**
-```bash
-gunicorn --workers=4 --bind=0.0.0.0:8000 --timeout=120 app:app
-```
-
-### **Docker Deployment**
+### **Docker**
 ```bash
 docker build -t finance-integration .
 docker run -p 8000:5000 --env-file .env finance-integration
 ```
 
----
-
-## 📊 **Performance & Monitoring**
-
-### **Built-in Optimizations**
-- ⚡ **Intelligent caching** with adaptive TTL
-- 🔄 **Background data refresh** prevents user wait times  
-- 📉 **Data downsampling** for large datasets
-- 🧵 **Thread-safe operations** with connection pooling
-- ⏱️ **Request timeouts** prevent hanging operations
-
-### **Monitoring Endpoints**
-- `/cache-control` - Cache statistics and management
-- Health checks built into service adapters
-- Comprehensive logging with structured output
+### **Manual**
+```bash
+export DATABASE_URL=postgresql://user:pass@host:5432/finance_db
+export FINNHUB_API_KEY=your_key
+export ALPHA_VANTAGE_API_KEY=your_key
+python app.py
+```
 
 ---
 
-## 🤝 **Contributing**
-
-We welcome contributions! Please see our development guidelines:
-
-1. **Fork the repository**
-2. **Create feature branch** (`git checkout -b feature/amazing-feature`)
-3. **Follow the new service patterns** (BaseDataService)
-4. **Add tests** for new functionality
-5. **Submit pull request**
-
-### **Code Quality Standards**
-- **Black** for code formatting
-- **Flake8** for linting  
-- **Pytest** for testing
-- **Type hints** encouraged
-
 ---
 
-## 📚 **Documentation**
+## 🔮 **Upcoming Improvements**
 
-- [Yahoo Finance Integration Guide](documentation/yahoo_finance_integration.md)
-- [Service Migration Guide](documentation/service_migration.md) *(Coming Soon)*
-- [API Reference](documentation/api_reference.md) *(Coming Soon)*
+- Enhanced service architecture with BaseDataService pattern
+- Performance optimizations and better caching strategies  
+- Extended analytics and RESTful API endpoints
+
+> **Note:** This project is actively maintained with ongoing refactoring to improve code quality and architecture patterns.
 
 ---
 
@@ -356,15 +158,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-## 🙏 **Acknowledgments**
 
-- **Finnhub** for comprehensive financial data API
-- **Yahoo Finance** for reliable backup data source
-- **Plotly** for beautiful interactive visualizations
-- **Flask** ecosystem for robust web framework
-- **NLTK** for sentiment analysis capabilities
-
----
 
 <div align="center">
 

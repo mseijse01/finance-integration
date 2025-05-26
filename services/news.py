@@ -1,18 +1,20 @@
-import requests
-from config import Config
-from utils.logging_config import logger
-from nltk.sentiment.vader import SentimentIntensityAnalyzer
-import nltk
-from utils.cache import timed_cache
-from models.db_models import SessionLocal, NewsArticle
-from sqlalchemy import desc
-from datetime import datetime, timedelta
-from etl.news_etl import run_news_etl_pipeline
-import ssl
-from flask import Blueprint, render_template
-from utils.constants import CacheTTL
 import concurrent.futures
+import ssl
 import threading
+from datetime import datetime, timedelta
+
+import nltk
+import requests
+from flask import Blueprint, render_template
+from nltk.sentiment.vader import SentimentIntensityAnalyzer
+from sqlalchemy import desc
+
+from config import Config
+from etl.news_etl import run_news_etl_pipeline
+from models.db_models import NewsArticle, SessionLocal
+from utils.cache import timed_cache
+from utils.constants import CacheTTL
+from utils.logging_config import logger
 
 # Fix SSL certificate issues for NLTK downloads
 try:

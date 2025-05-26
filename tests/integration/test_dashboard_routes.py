@@ -3,18 +3,20 @@ Integration tests for the dashboard routes and web UI.
 Tests simulate actual user interactions with the web application.
 """
 
-import unittest
-import tempfile
-import os
 import json
+import os
+import tempfile
+import unittest
 from datetime import datetime, timedelta
 from unittest import mock
 
 import flask
-from app import app
-from models.db_models import Base, FinancialReport, StockPrice, Earnings, NewsArticle
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+
+from app import app
+from models.db_models import (Base, Earnings, FinancialReport, NewsArticle,
+                              StockPrice)
 from utils.cache import clear_cache
 
 

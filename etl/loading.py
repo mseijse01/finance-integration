@@ -1,5 +1,6 @@
-from models.db_models import SessionLocal, StockPrice
 import datetime
+
+from models.db_models import SessionLocal, StockPrice
 from utils.logging_config import logger
 
 

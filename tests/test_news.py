@@ -1,7 +1,9 @@
-import pytest
-from unittest.mock import patch, Mock
-import requests
 from datetime import datetime, timedelta
+from unittest.mock import Mock, patch
+
+import pytest
+import requests
+
 from services.news import fetch_company_news
 
 

@@ -1,11 +1,13 @@
-import requests
-from datetime import datetime, timedelta
-from config import Config
-from utils.logging_config import logger
-from nltk.sentiment.vader import SentimentIntensityAnalyzer
-import nltk
-from models.db_models import SessionLocal, NewsArticle
 import ssl
+from datetime import datetime, timedelta
+
+import nltk
+import requests
+from nltk.sentiment.vader import SentimentIntensityAnalyzer
+
+from config import Config
+from models.db_models import NewsArticle, SessionLocal
+from utils.logging_config import logger
 
 # Fix SSL certificate issues for NLTK downloads
 try:
