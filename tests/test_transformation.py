@@ -1,5 +1,6 @@
-import pytest
 import polars as pl
+import pytest
+
 from etl.transformation import transform_stock_data
 
 sample_raw_data = {

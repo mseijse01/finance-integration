@@ -4,9 +4,10 @@ Utility to download and set up NLTK resources.
 Handles SSL certificate issues that commonly occur on macOS.
 """
 
-import nltk
 import ssl
 import sys
+
+import nltk
 
 
 def setup_nltk():

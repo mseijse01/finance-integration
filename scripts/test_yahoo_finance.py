@@ -4,17 +4,17 @@ Test script to verify Yahoo Finance integration for SBUX.
 Ensures that our alternative data sources work correctly.
 """
 
-import sys
-import os
 import json
+import os
+import sys
 
 # Add parent directory to path so we can import from the application modules
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
+import services.earnings
+import services.financials
 from services.alternative_financials import fetch_yahoo_financials
 from utils.logging_config import logger
-import services.financials
-import services.earnings
 
 
 def test_yahoo_finance_integration():

@@ -3,26 +3,27 @@ Integration tests for the ETL pipeline.
 Tests the complete flow from extraction to transformation to loading.
 """
 
-import unittest
 import os
 import tempfile
+import unittest
 from datetime import datetime, timedelta
 from unittest import mock
 
-from models.db_models import Base, StockPrice, FinancialReport, NewsArticle, Earnings
+import numpy as np
+import pandas as pd
 from sqlalchemy import create_engine, desc
 from sqlalchemy.orm import sessionmaker
-import pandas as pd
-import numpy as np
+
+from etl.earnings_etl import run_earnings_etl_pipeline
 
 # Import the ETL components
-from etl.extraction import extract_stock_data, extract_financials
-from etl.transformation import transform_stock_data, transform_financials
-from etl.loading import load_stock_data, load_financials
-from etl.main_etl import run_etl_pipeline
+from etl.extraction import extract_financials, extract_stock_data
 from etl.financials_etl import run_financials_etl_pipeline
-from etl.earnings_etl import run_earnings_etl_pipeline
+from etl.loading import load_financials, load_stock_data
+from etl.main_etl import run_etl_pipeline
 from etl.news_etl import run_news_etl_pipeline
+from etl.transformation import transform_financials, transform_stock_data
+from models.db_models import Base, Earnings, FinancialReport, NewsArticle, StockPrice
 
 
 class TestETLPipeline(unittest.TestCase):

@@ -1,15 +1,16 @@
 # run_etl.py
 
-from etl.extraction import fetch_stock_data
-from etl.transformation import transform_stock_data
-from etl.loading import load_data_to_db
-from etl.news_etl import run_news_etl_pipeline
-from etl.financials_etl import run_financials_etl_pipeline
-from etl.earnings_etl import run_earnings_etl_pipeline
-from utils.logging_config import logger
-from models.db_models import create_tables
 import concurrent.futures
 import time
+
+from etl.earnings_etl import run_earnings_etl_pipeline
+from etl.extraction import fetch_stock_data
+from etl.financials_etl import run_financials_etl_pipeline
+from etl.loading import load_data_to_db
+from etl.news_etl import run_news_etl_pipeline
+from etl.transformation import transform_stock_data
+from models.db_models import create_tables
+from utils.logging_config import logger
 
 
 def run_stock_price_pipeline(symbol: str):

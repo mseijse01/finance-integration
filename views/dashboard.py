@@ -1,36 +1,38 @@
-from flask import Blueprint, render_template, Response, request, g
+import csv
+import io
+import json
+import os
+import threading
+import time
+from datetime import datetime, timedelta
+
+import numpy as np
 import pandas as pd
-import polars as pl
-from plotly.subplots import make_subplots
 import plotly.graph_objs as go
 import plotly.io as pio
-from datetime import datetime, timedelta
-import io
-import csv
-from models.db_models import (
-    SessionLocal,
-    StockPrice,
-    NewsArticle,
-    FinancialReport,
-    Earnings,
-)
-from utils.logging_config import logger
+import polars as pl
+from flask import Blueprint, Response, g, render_template, request
+from plotly.subplots import make_subplots
+from sqlalchemy import desc
+
 from etl.extraction import fetch_stock_data
 from etl.transformation import transform_stock_data
-import threading
-from utils.cache import timed_cache, clear_cache, get_cache_stats
-import numpy as np
-from sqlalchemy import desc
-import time
+from models.db_models import (
+    Earnings,
+    FinancialReport,
+    NewsArticle,
+    SessionLocal,
+    StockPrice,
+)
+from services.alternative_financials import (
+    compare_financial_sources,
+    fetch_yahoo_financials,
+)
 
 # Use service adapter for graceful migration to BaseDataService
-from services.service_adapter import fetch_financials, fetch_earnings
-from services.alternative_financials import (
-    fetch_yahoo_financials,
-    compare_financial_sources,
-)
-import os
-import json
+from services.service_adapter import fetch_earnings, fetch_financials
+from utils.cache import clear_cache, get_cache_stats, timed_cache
+from utils.logging_config import logger
 
 dashboard_bp = Blueprint("dashboard", __name__)
 
@@ -41,9 +43,9 @@ def load_stock_data_background():
     # We need to import these functions inside the thread to avoid circular imports
     # and ensure the functions are defined before being called
     from views.dashboard import (
-        get_news_from_db,
-        get_financials_from_db,
         get_earnings_from_db,
+        get_financials_from_db,
+        get_news_from_db,
     )
 
     coffee_stocks = ["SBUX", "KDP", "BROS", "FARM"]
@@ -1136,7 +1138,7 @@ def download_csv(symbol):
 @dashboard_bp.route("/cache-control", methods=["GET", "POST"])
 def cache_control():
     """Admin endpoint to view and clear cache."""
-    from flask import redirect, url_for, flash, request
+    from flask import flash, redirect, request, url_for
 
     if request.method == "POST" and request.form.get("action") == "clear_cache":
         clear_cache()

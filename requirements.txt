@@ -41,6 +41,6 @@ Flask-SQLAlchemy==2.5.1
 Flask-Cors==3.0.10
 black==23.3.0
 flake8==6.0.0
-isort==5.9.3
+isort==6.0.1
 pre-commit==2.15.0
 yfinance==0.2.35

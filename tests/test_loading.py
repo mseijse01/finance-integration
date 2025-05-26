@@ -1,7 +1,9 @@
-import pytest
-from unittest.mock import patch, MagicMock
-import polars as pl
 import datetime
+from unittest.mock import MagicMock, patch
+
+import polars as pl
+import pytest
+
 from etl.loading import load_data_to_db
 from models.db_models import StockPrice
 

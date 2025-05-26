@@ -1,8 +1,10 @@
-import requests
 from datetime import datetime
+
+import requests
+
 from config import Config
+from models.db_models import Earnings, SessionLocal
 from utils.logging_config import logger
-from models.db_models import SessionLocal, Earnings
 
 
 def extract_earnings(symbol: str):

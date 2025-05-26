@@ -2,20 +2,21 @@
 Refactored Earnings Service using Base Service pattern
 """
 
+from datetime import datetime
+from typing import Any, Dict, List, Optional, Union
+
 import requests
-from typing import List, Dict, Any, Optional, Union
 from sqlalchemy import desc
 from sqlalchemy.orm import Session
-from datetime import datetime
 
 from config import Config
-from utils.logging_config import logger
-from utils.cache import adaptive_ttl_cache, rate_limited_api
-from models.db_models import Earnings
 from etl.earnings_etl import run_earnings_etl_pipeline
-from services.base_service import BaseDataService
+from models.db_models import Earnings
 from services.alternative_financials import fetch_yahoo_financials
+from services.base_service import BaseDataService
 from services.hardcoded_financials import get_hardcoded_earnings
+from utils.cache import adaptive_ttl_cache, rate_limited_api
+from utils.logging_config import logger
 
 
 class EarningsService(BaseDataService):

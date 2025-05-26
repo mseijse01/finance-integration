@@ -3,21 +3,22 @@ Integration tests for the complete financial data flow.
 Tests the entire pipeline from API to ETL to database to dashboard.
 """
 
-import unittest
+import json
 import os
 import sqlite3
 import tempfile
-import json
+import unittest
 from datetime import datetime, timedelta
 from unittest import mock
 
-from models.db_models import Base, FinancialReport, Earnings, StockPrice, NewsArticle
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-# Import the services through the adapter for graceful migration
-from services.service_adapter import fetch_financials, fetch_earnings
+from models.db_models import Base, Earnings, FinancialReport, NewsArticle, StockPrice
 from services.alternative_financials import fetch_yahoo_financials
+
+# Import the services through the adapter for graceful migration
+from services.service_adapter import fetch_earnings, fetch_financials
 from utils.cache import clear_cache
 
 

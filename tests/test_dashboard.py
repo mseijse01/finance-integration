@@ -1,10 +1,12 @@
-import pytest
-from unittest.mock import patch, Mock, MagicMock
 import json
+from unittest.mock import MagicMock, Mock, patch
+
 import pandas as pd
+import pytest
+
 from app import app
-from views.dashboard import download_csv
 from models.db_models import StockPrice
+from views.dashboard import download_csv
 
 
 @pytest.fixture

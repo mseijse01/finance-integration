@@ -3,12 +3,14 @@ Alternative financial data service using Yahoo Finance API.
 Used as a secondary source or fallback when Finnhub data is unavailable.
 """
 
-import yfinance as yf
-from datetime import datetime, timedelta
-from utils.logging_config import logger
-from utils.cache import adaptive_ttl_cache, rate_limited_api, RateLimitExceeded
-import pandas as pd
 import time
+from datetime import datetime, timedelta
+
+import pandas as pd
+import yfinance as yf
+
+from utils.cache import RateLimitExceeded, adaptive_ttl_cache, rate_limited_api
+from utils.logging_config import logger
 
 
 @adaptive_ttl_cache(

@@ -1,10 +1,12 @@
+import ssl
+
+import click
 from flask import Flask
+
+from models.db_models import create_tables
+from run_etl import run_pipeline_for_symbol, run_pipelines_parallel
 from views.dashboard import dashboard_bp
 from views.news import news_bp
-from models.db_models import create_tables
-import click
-from run_etl import run_pipelines_parallel, run_pipeline_for_symbol
-import ssl
 
 # Fix SSL certificate issues for NLTK downloads and other libraries
 try:
