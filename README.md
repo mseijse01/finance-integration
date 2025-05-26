@@ -1,4 +1,4 @@
-# 📈 Finance Integration Dashboard
+# Finance Integration Dashboard
 
 > **A comprehensive Flask application for financial data analysis and visualization**
 
@@ -11,7 +11,7 @@ Track and visualize stock prices, financial fundamentals, earnings, and sentimen
 
 ---
 
-## ✨ **Key Features**
+## **Key Features**
 
 - **Multi-source financial data** with automatic fallbacks (Finnhub → Yahoo Finance → Hardcoded)
 - **Real-time stock tracking** with technical indicators and earnings analysis
@@ -22,7 +22,7 @@ Track and visualize stock prices, financial fundamentals, earnings, and sentimen
 
 ---
 
-## 🏗️ **Architecture**
+## **Architecture**
 
 ```
 ┌─────────────┐    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐
@@ -51,7 +51,7 @@ The ETL pipeline runs in the background to keep the database fresh, ensuring fas
 
 ---
 
-## 🚀 **Quick Start**
+## **Quick Start**
 
 ### **Prerequisites**
 - Python 3.10+
@@ -79,7 +79,7 @@ python app.py
 
 ---
 
-## 📁 **Project Structure**
+## **Project Structure**
 
 ```
 finance-integration/
@@ -98,7 +98,7 @@ finance-integration/
 
 ---
 
-## 🎯 **Supported Stocks**
+## **Supported Stocks**
 
 **Coffee & Beverage Companies:** SBUX, KDP, BROS, FARM
 
@@ -106,7 +106,7 @@ finance-integration/
 
 ---
 
-## 🧑‍💻 **Development**
+## **Development**
 
 ### **Adding New Stocks**
 ```python
@@ -122,7 +122,7 @@ flask run-etl                  # All stocks
 
 ---
 
-## 🚀 **Deployment**
+## **Deployment**
 
 ### **Docker**
 ```bash
@@ -142,7 +142,7 @@ python app.py
 
 ---
 
-## 🔮 **Upcoming Improvements**
+## **Upcoming Improvements**
 
 - Enhanced service architecture with BaseDataService pattern
 - Performance optimizations and better caching strategies  
@@ -152,7 +152,7 @@ python app.py
 
 ---
 
-## 📜 **License**
+## **License**
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
