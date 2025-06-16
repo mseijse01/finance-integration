@@ -108,6 +108,44 @@ The service layer includes smart ETL management:
 - News categorization
 - Real-time sentiment scoring
 
+## Alternative Data Sources
+
+### Yahoo Finance Integration
+
+**Purpose**: Secondary data source for comprehensive financial coverage
+
+**Implementation**: `services/alternative_financials.py`
+
+**Key Functions**:
+- `fetch_yahoo_financials`: Main Yahoo Finance data entry point
+- `process_financials`: Transforms Yahoo DataFrames to internal format
+- `process_earnings`: Handles Yahoo Finance earnings data
+- `compare_financial_sources`: Cross-validates data between sources
+
+**Data Transformation**:
+- Yahoo Finance returns pandas DataFrames (metrics as rows, dates as columns)
+- Extracts key metrics (revenue, net income) and reformats
+- Adds source attribution and consistent date formatting
+- Handles missing earnings data gracefully
+
+**UI Integration**:
+- Data source attribution displayed in dashboard
+- Comparison view when multiple sources available
+- Significant differences (>5%) highlighted for user awareness
+- Special handling for stocks with known data issues
+
+### Hardcoded Data Fallbacks
+
+**Purpose**: Manually curated data for stocks with poor API coverage
+
+**Implementation**: `services/hardcoded_financials.py`
+
+**Key Functions**:
+- `get_hardcoded_financials`: Curated financial data for specific stocks
+- `get_hardcoded_earnings`: Curated earnings data for specific stocks
+
+**Data Sources**: Manual curation from investor relations sites and SEC filings
+
 ## Service Adapter Pattern
 
 ### Migration Strategy
