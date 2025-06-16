@@ -48,7 +48,6 @@ def transform_stock_data(raw_data: dict, symbol: str) -> pl.DataFrame:
         df = df.with_columns(
             [
                 pl.col("close").rolling_mean(window_size=20).alias("moving_average_20"),
-                pl.col("close").rolling_std(window_size=20).alias("volatility"),
             ]
         )
 
