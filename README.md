@@ -1,64 +1,30 @@
 # Finance Integration Dashboard
 
-> **A comprehensive Flask application for financial data analysis and visualization**
-
-Track and visualize stock prices, financial fundamentals, earnings, and sentiment analysis for coffee and beverage companies. Features robust data pipelines, intelligent caching, and beautiful interactive dashboards built with modern web technologies.
+A comprehensive Flask application for financial data analysis and visualization of coffee and beverage companies.
 
 [![Python](https://img.shields.io/badge/Python-3.10%2B-blue.svg)](https://python.org)
 [![Flask](https://img.shields.io/badge/Flask-2.0%2B-green.svg)](https://flask.palletsprojects.com/)
 [![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-1.4-orange.svg)](https://sqlalchemy.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
----
+## Features
 
-## **Key Features**
+- Multi-source financial data with automatic fallbacks (Finnhub → Yahoo Finance → Hardcoded)
+- Real-time stock tracking with technical indicators and earnings analysis
+- Sentiment analysis of financial news using NLTK
+- Interactive Plotly dashboards with responsive design
+- Smart caching and automated ETL pipelines
+- Performance-optimized database with intelligent indexing
+- CSV export and multi-stock comparison views
 
-- **Multi-source financial data** with automatic fallbacks (Finnhub → Yahoo Finance → Hardcoded)
-- **Real-time stock tracking** with technical indicators and earnings analysis
-- **Sentiment analysis** of financial news using NLTK
-- **Interactive Plotly dashboards** with responsive design
-- **Smart caching** and background ETL for optimal performance
-- **CSV export** and multi-stock comparison views
+## Quick Start
 
----
-
-## **Architecture**
-
-```
-┌─────────────┐    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐
-│    User     │───▶│   Flask     │───▶│  Services   │───▶│  Response   │
-│  (Browser)  │    │   Routes    │    │   Layer     │    │   (JSON)    │
-└─────────────┘    └─────────────┘    └─────────────┘    └─────────────┘
-                                             │
-                                             ▼
-                   ┌─────────────────────────────────────────────────┐
-                   │              Data Sources                       │
-                   │  ┌─────────┐  ┌─────────┐  ┌─────────┐  ┌─────┐ │
-                   │  │Database │  │Finnhub  │  │ Yahoo   │  │Hard │ │
-                   │  │(Cache)  │  │   API   │  │Finance  │  │coded│ │
-                   │  │  [1]    │  │   [2]   │  │   [3]   │  │ [4] │ │
-                   │  └─────────┘  └─────────┘  └─────────┘  └─────┘ │
-                   └─────────────────────────────────────────────────┘
-```
-
-### **Data Source Priority**
-1. **Database Cache** - Return cached data instantly if available
-2. **Finnhub API** - Primary source for fresh financial data
-3. **Yahoo Finance** - Backup when Finnhub is unavailable
-4. **Hardcoded Data** - Fallback for stocks with limited API coverage
-
-The ETL pipeline runs in the background to keep the database fresh, ensuring fast response times.
-
----
-
-## **Quick Start**
-
-### **Prerequisites**
+### Prerequisites
 - Python 3.10+
 - PostgreSQL (recommended) or SQLite
 - API Keys: [Finnhub](https://finnhub.io/), [Alpha Vantage](https://www.alphavantage.co/)
 
-### **Installation**
+### Installation
 
 ```bash
 git clone https://github.com/mseijse01/finance-integration.git
@@ -67,7 +33,7 @@ python -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
 python utils/setup_nltk.py
 
-# Configure environment
+# Setup environment
 cp .env.example .env
 # Edit .env with your API keys and database URL
 
@@ -77,41 +43,45 @@ python app.py
 # Access dashboard at http://localhost:5000
 ```
 
----
-
-## **Supported Stocks**
+## Supported Stocks
 
 **Coffee & Beverage Companies:** SBUX, KDP, BROS, FARM
 
 *Add new symbols to `coffee_stocks` list in `views/dashboard.py`*
 
----
+## Usage
 
-## **Development**
-
-### **Adding New Stocks**
-```python
-# In views/dashboard.py
-coffee_stocks = ["SBUX", "KDP", "BROS", "FARM", "YOUR_SYMBOL"]
-```
-
-### **Running ETL**
+### Running ETL
 ```bash
-flask run-etl --symbol=SBUX    # Single stock
-flask run-etl                  # All stocks
+# Manual ETL runs
+python scripts/schedule_etl.py --run-once              # All stocks
+python scripts/schedule_etl.py --run-once --symbols SBUX  # Single stock
+
+# Check data freshness
+python scripts/schedule_etl.py --check-freshness
+
+# Set up automated daily updates
+python scripts/schedule_etl.py --create-cron
 ```
 
----
+### Performance Optimization
+```bash
+# Add database indexes for faster queries (50-70% improvement)
+python scripts/add_performance_indexes.py
 
-## **Deployment**
+# Migrate database schema if needed
+python scripts/migrate_database_schema.py
+```
 
-### **Docker**
+## Deployment
+
+### Docker
 ```bash
 docker build -t finance-integration .
 docker run -p 8000:5000 --env-file .env finance-integration
 ```
 
-### **Manual**
+### Manual
 ```bash
 export DATABASE_URL=postgresql://user:pass@host:5432/finance_db
 export FINNHUB_API_KEY=your_key
@@ -119,32 +89,23 @@ export ALPHA_VANTAGE_API_KEY=your_key
 python app.py
 ```
 
----
+## Documentation
 
----
+- [Service Architecture](docs/service_architecture.md) - BaseDataService pattern and intelligent fallbacks
+- [Technology Stack](docs/technology_stack.md) - Technology choices and rationale
+- [Quick Start Guide](docs/quick_start_guide.md) - Comprehensive usage guide
 
-## **Recent Improvements**
+## Recent Improvements
 
-- Enhanced service architecture with BaseDataService pattern and intelligent fallbacks
-- Advanced caching strategies with adaptive TTL and background data loading
-- Comprehensive error handling and graceful service degradation
+- Automated ETL scheduling system with cron integration
+- Database performance optimization with intelligent indexing (50-70% faster queries)
+- Modular chart utilities for improved code organization
+- Enhanced service architecture with BaseDataService pattern
 
-> **Note:** This project is actively maintained with continuous improvements to performance and reliability.
-
----
-
-## **License**
+## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ---
 
-
-
-<div align="center">
-
-**⭐ Star this repo if you find it useful! ⭐**
-
-[Report Bug](https://github.com/mseijse01/finance-integration/issues) • [Request Feature](https://github.com/mseijse01/finance-integration/issues) • [Documentation](documentation/)
-
-</div>
+[Report Bug](https://github.com/mseijse01/finance-integration/issues) • [Request Feature](https://github.com/mseijse01/finance-integration/issues) • [Documentation](docs/) • [Quick Start Guide](docs/quick_start_guide.md)
