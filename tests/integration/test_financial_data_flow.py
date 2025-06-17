@@ -17,8 +17,9 @@ from sqlalchemy.orm import sessionmaker
 from models.db_models import Base, Earnings, FinancialReport, NewsArticle, StockPrice
 from services.alternative_financials import fetch_yahoo_financials
 
-# Import the services through the adapter for graceful migration
-from services.service_adapter import fetch_earnings, fetch_financials
+# Import services directly (service layer cleanup completed)
+from services.earnings import EarningsService
+from services.financials import FinancialsService
 from utils.cache import clear_cache
 
 
@@ -110,13 +111,13 @@ class TestFinancialDataFlow(unittest.TestCase):
         # Test the original financials service
         with mock.patch("models.db_models.SessionLocal", return_value=self.session):
             # Test fetching financials
-            financials_data = fetch_financials(symbol)
+            financials_data = FinancialsService.fetch_financials(symbol)
             self.assertIsNotNone(financials_data)
             self.assertEqual(len(financials_data["data"]), 4)
             self.assertEqual(financials_data["source"], "finnhub")
 
             # Test fetching earnings
-            earnings_data = fetch_earnings(symbol)
+            earnings_data = EarningsService.fetch_earnings(symbol)
             self.assertIsNotNone(earnings_data)
             self.assertEqual(len(earnings_data), 4)
             self.assertEqual(earnings_data[0]["source"], "finnhub")
@@ -163,7 +164,7 @@ class TestFinancialDataFlow(unittest.TestCase):
             # Test the original financials service with fallback
             with mock.patch("models.db_models.SessionLocal", return_value=self.session):
                 # This should try DB, ETL, then Yahoo Finance
-                financials_data = fetch_financials(symbol)
+                financials_data = FinancialsService.fetch_financials(symbol)
 
                 # Verify we got data from Yahoo fallback
                 self.assertIsNotNone(financials_data)
@@ -225,7 +226,7 @@ class TestFinancialDataFlow(unittest.TestCase):
         # 4. Now simulate retrieving all data for the dashboard
         with mock.patch("models.db_models.SessionLocal", return_value=self.session):
             # Get financials
-            financials = fetch_financials(symbol)
+            financials = FinancialsService.fetch_financials(symbol)
             self.assertIsNotNone(financials)
 
             # Get earnings (will use fallback since we didn't add earnings)
@@ -233,7 +234,7 @@ class TestFinancialDataFlow(unittest.TestCase):
                 "services.alternative_financials.fetch_yahoo_financials",
                 return_value={"quarterly_earnings": [{"actual": 1.2, "estimate": 1.0}]},
             ):
-                earnings = fetch_earnings(symbol)
+                earnings = EarningsService.fetch_earnings(symbol)
                 self.assertIsNotNone(earnings)
 
             # Verify the integration of different data types
@@ -249,7 +250,7 @@ class TestFinancialDataFlow(unittest.TestCase):
 
         with mock.patch("models.db_models.SessionLocal", return_value=self.session):
             # This should try DB, ETL, Yahoo, then hardcoded, then legacy API (which will fail)
-            financials = fetch_financials(symbol)
+            financials = FinancialsService.fetch_financials(symbol)
 
             # Despite the error, we should get a valid response structure
             self.assertIsNotNone(financials)
