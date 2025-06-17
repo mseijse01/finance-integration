@@ -91,9 +91,9 @@ python app.py
 
 ## Documentation
 
-- [Service Architecture](docs/service_architecture.md) - BaseDataService pattern and intelligent fallbacks
-- [Technology Stack](docs/technology_stack.md) - Technology choices and rationale
-- [Quick Start Guide](docs/quick_start_guide.md) - Comprehensive usage guide
+- [Service Architecture](documentation/service_architecture.md) - BaseDataService pattern and intelligent fallbacks
+- [Technology Stack](documentation/technology_stack.md) - Technology choices and rationale
+- [Quick Start Guide](documentation/quick_start_guide.md) - Comprehensive usage guide
 
 ## Recent Improvements
 
@@ -108,4 +108,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-[Report Bug](https://github.com/mseijse01/finance-integration/issues) • [Request Feature](https://github.com/mseijse01/finance-integration/issues) • [Documentation](docs/) • [Quick Start Guide](docs/quick_start_guide.md)
+[Report Bug](https://github.com/mseijse01/finance-integration/issues) • [Request Feature](https://github.com/mseijse01/finance-integration/issues) • [Documentation](documentation/) • [Quick Start Guide](documentation/quick_start_guide.md)
