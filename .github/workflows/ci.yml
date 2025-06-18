@@ -100,12 +100,12 @@ jobs:
         except Exception as e:
             print(f'⚠️  Logging config issue: {e}')
         
-        # Test service adapter during migration period
+        # Test services after migration completion
         try:
-            from services.service_adapter import fetch_financials
-            print('✅ Service adapter imported successfully (migration-friendly)')
+            from services.financials import FinancialsService
+            print('✅ Services imported successfully (migration completed)')
         except Exception as e:
-            print(f'⚠️  Service adapter import issue: {e}')
+            print(f'⚠️  Services import issue: {e}')
         "
         
         echo "Running tests..."

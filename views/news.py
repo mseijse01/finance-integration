@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template
 
-from services.service_adapter import fetch_news
+from services.news import NewsService
 
 news_bp = Blueprint("news", __name__)
 
@@ -12,7 +12,7 @@ def news():
     stocks = ["SBUX", "KDP", "BROS", "FARM"]
     news_sections = {}
     for symbol in stocks:
-        articles = fetch_news(symbol)
+        articles = NewsService.fetch_news(symbol)
         html = (
             "<ul>"
             + "".join(
