@@ -9,8 +9,8 @@ A comprehensive Flask application for financial data analysis and visualization 
 
 ## Features
 
-- Multi-source financial data with automatic fallbacks (Finnhub → Yahoo Finance → Hardcoded)
-- Real-time stock tracking with technical indicators and earnings analysis
+- Multi-source financial data with automatic fallbacks (Finnhub → Yahoo Finance → bundled snapshot from public filings)
+- Daily stock tracking with technical indicators and earnings analysis
 - Sentiment analysis of financial news using NLTK
 - Interactive Plotly dashboards with responsive design
 - Smart caching and automated ETL pipelines
